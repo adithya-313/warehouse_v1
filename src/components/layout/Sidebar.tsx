@@ -9,13 +9,19 @@ import {
   Settings,
   Warehouse,
   Activity,
+  ClipboardList,
+  AlertTriangle,
+  ArrowRightLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/alerts",    label: "Alerts",     icon: Bell },
-  { href: "/settings",  label: "Settings",   icon: Settings },
+  { href: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard },
+  { href: "/transfers",     label: "Transfers",      icon: ArrowRightLeft },
+  { href: "/cycle-counts",  label: "Cycle Counts",  icon: ClipboardList },
+  { href: "/discrepancies", label: "Discrepancies", icon: AlertTriangle },
+  { href: "/alerts",        label: "Alerts",        icon: Bell },
+  { href: "/settings",      label: "Settings",       icon: Settings },
 ];
 
 export default function Sidebar() {

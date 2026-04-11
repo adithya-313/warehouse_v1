@@ -7,6 +7,27 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================
+-- CREATE ENUMS (using DO block for idempotency)
+-- ============================================================
+DO $$ BEGIN
+  CREATE TYPE stock_movement_type AS ENUM ('in', 'out', 'transfer');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE alert_severity AS ENUM ('info', 'warning', 'critical');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE sync_status AS ENUM ('success', 'partial', 'failed');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+-- ============================================================
 -- WAREHOUSES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS warehouses (
@@ -50,6 +71,7 @@ CREATE TABLE IF NOT EXISTS inventory (
   warehouse_id   UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
   quantity       NUMERIC(12, 2) DEFAULT 0,
   reorder_point  NUMERIC(12, 2) DEFAULT 0,
+  reserved_qty  NUMERIC(12, 2) DEFAULT 0,
   updated_at     TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(product_id, warehouse_id)
 );
@@ -57,8 +79,6 @@ CREATE TABLE IF NOT EXISTS inventory (
 -- ============================================================
 -- STOCK MOVEMENTS
 -- ============================================================
-CREATE TYPE IF NOT EXISTS stock_movement_type AS ENUM ('in', 'out', 'transfer');
-
 CREATE TABLE IF NOT EXISTS stock_movements (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   product_id  UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -77,19 +97,17 @@ CREATE TABLE IF NOT EXISTS product_analytics (
   product_id          UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE UNIQUE,
   avg_daily_demand    NUMERIC(10, 4) DEFAULT 0,
   days_to_stockout    NUMERIC(10, 2),
-  expiry_risk_score   NUMERIC(5, 2) DEFAULT 0,   -- 0–100
-  health_score        NUMERIC(5, 2) DEFAULT 0,   -- 0–100
-  health_label        TEXT DEFAULT 'Monitor',    -- Healthy / Monitor / At Risk / Critical
-  classification      TEXT DEFAULT 'Slow Moving',-- Fast Moving / Slow Moving / Dead Stock / Seasonal / Expiry Risk
-  demand_trend        TEXT DEFAULT 'stable',     -- rising / stable / falling
+  expiry_risk_score   NUMERIC(5, 2) DEFAULT 0,
+  health_score        NUMERIC(5, 2) DEFAULT 0,
+  health_label        TEXT DEFAULT 'Monitor',
+  classification      TEXT DEFAULT 'Slow Moving',
+  demand_trend        TEXT DEFAULT 'stable',
   updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================================
 -- ALERTS
 -- ============================================================
-CREATE TYPE IF NOT EXISTS alert_severity AS ENUM ('info', 'warning', 'critical');
-
 CREATE TABLE IF NOT EXISTS alerts (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   product_id  UUID REFERENCES products(id) ON DELETE CASCADE,
@@ -102,7 +120,7 @@ CREATE TABLE IF NOT EXISTS alerts (
 );
 
 -- ============================================================
--- ACTIONS  (recommendations linked to alerts)
+-- ACTIONS (recommendations linked to alerts)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS actions (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -114,11 +132,9 @@ CREATE TABLE IF NOT EXISTS actions (
 -- ============================================================
 -- SYNC LOGS
 -- ============================================================
-CREATE TYPE IF NOT EXISTS sync_status AS ENUM ('success', 'partial', 'failed');
-
 CREATE TABLE IF NOT EXISTS sync_logs (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  source          TEXT NOT NULL DEFAULT 'tally',  -- tally | csv | manual
+  source          TEXT NOT NULL DEFAULT 'tally',
   status          sync_status NOT NULL DEFAULT 'success',
   records_synced  INTEGER DEFAULT 0,
   error_message   TEXT,
@@ -162,3 +178,4 @@ CREATE INDEX IF NOT EXISTS idx_alerts_resolved      ON alerts(resolved);
 CREATE INDEX IF NOT EXISTS idx_alerts_severity      ON alerts(severity);
 CREATE INDEX IF NOT EXISTS idx_analytics_health     ON product_analytics(health_score);
 CREATE INDEX IF NOT EXISTS idx_sync_logs_synced_at  ON sync_logs(synced_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inventory_reserved    ON inventory(warehouse_id) WHERE reserved_qty > 0;

@@ -302,3 +302,101 @@ export interface StockLevelReserved {
   reserved_qty: number;
   available_qty: number;
 }
+
+// ============================================================
+// PICKING TYPES
+// ============================================================
+export type PickBatchStatus = "draft" | "assigned" | "in-progress" | "completed";
+export type PickItemStatus = "pending" | "picked" | "verified";
+export type BinZone = "A" | "B" | "C" | "D" | "E" | "F";
+export type PickAction = "created" | "assigned" | "started" | "item_picked" | "item_verified" | "completed" | "cancelled";
+
+export interface BinLocation {
+  id: string;
+  warehouse_id: string;
+  aisle: string;
+  rack: string;
+  bin: string;
+  zone: BinZone;
+  product_id: string | null;
+  qty_on_hand: number;
+  last_counted: string | null;
+  created_at: string;
+  // Joined
+  products?: Pick<Product, "id" | "name" | "category" | "unit"> | null;
+  warehouses?: Pick<Warehouse, "id" | "name"> | null;
+}
+
+export interface PickBatch {
+  id: string;
+  warehouse_id: string;
+  status: PickBatchStatus;
+  created_date: string;
+  completed_date: string | null;
+  started_at: string | null;
+  picker_id: string | null;
+  total_items: number;
+  total_picks_completed: number;
+  efficiency_score: number | null;
+  order_ids: string[] | null;
+  notes: string | null;
+  created_at: string;
+  // Joined
+  warehouses?: Pick<Warehouse, "id" | "name"> | null;
+}
+
+export interface PickBatchItem {
+  id: string;
+  pick_batch_id: string;
+  product_id: string;
+  location_id: string | null;
+  requested_qty: number;
+  picked_qty: number;
+  status: PickItemStatus;
+  sequence_order: number | null;
+  picked_by: string | null;
+  picked_at: string | null;
+  created_at: string;
+  // Joined
+  products?: Pick<Product, "id" | "name" | "category" | "unit"> | null;
+  bin_locations?: Pick<BinLocation, "id" | "aisle" | "rack" | "bin" | "zone"> | null;
+}
+
+export interface PickAuditLog {
+  id: string;
+  pick_batch_id: string | null;
+  pick_item_id: string | null;
+  action: PickAction;
+  performed_by: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface PickBatchRow extends PickBatch {
+  picked_count: number;
+  pending_count: number;
+  progress_pct: number;
+  current_zone: BinZone | null;
+}
+
+export interface PickBatchWithItems extends PickBatch {
+  items: PickBatchItem[];
+  audit_log?: PickAuditLog[];
+}
+
+export interface OptimizedRoute {
+  items: PickBatchItem[];
+  total_zones: BinZone[];
+  estimated_distance: number;
+  zone_transitions: number;
+}
+
+export interface PickerPerformance {
+  picker_id: string;
+  total_batches: number;
+  total_items: number;
+  total_picks: number;
+  avg_efficiency: number;
+  avg_batch_time_minutes: number;
+  accuracy: number;
+}

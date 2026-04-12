@@ -31,6 +31,12 @@ def pipeline(dry_run: bool = False):
         ("sync_monitor", "Check sync freshness"),
     ]
 
+    import datetime
+    is_1am = datetime.datetime.now().hour == 1
+    is_2am = datetime.datetime.now().hour == 2
+    is_3am = datetime.datetime.now().hour == 3
+    is_4am = datetime.datetime.now().hour == 4
+
     results = {}
     for module_name, description in steps:
         logging.info(f"▶ {description}")
@@ -47,8 +53,30 @@ def pipeline(dry_run: bool = False):
             logging.error(f"  ✘ {module_name} failed: {e}")
             results[module_name] = f"ERROR: {e}"
 
-    # Daily digest: fire only if current hour is 8 (08:00 local)
-    import datetime
+    if is_2am and not dry_run:
+        try:
+            from forecast_engine import generate_all_forecasts
+            logging.info("▶ Generating demand forecasts (2 AM job)")
+            generate_all_forecasts()
+        except Exception as e:
+            logging.warning(f"Demand forecast skipped: {e}")
+
+    if is_3am and not dry_run:
+        try:
+            from forecast_engine import generate_all_liquidation
+            logging.info("▶ Generating liquidation recommendations (3 AM job)")
+            generate_all_liquidation()
+        except Exception as e:
+            logging.warning(f"Liquidation recommendations skipped: {e}")
+
+    if is_4am and not dry_run:
+        try:
+            from supplier_performance import update_all_supplier_performance
+            logging.info("▶ Updating supplier performance metrics (4 AM job)")
+            update_all_supplier_performance()
+        except Exception as e:
+            logging.warning(f"Supplier performance skipped: {e}")
+
     if not dry_run and datetime.datetime.now().hour == 8:
         try:
             from notifier import send_daily_digest
@@ -56,6 +84,38 @@ def pipeline(dry_run: bool = False):
             send_daily_digest()
         except Exception as e:
             logging.warning(f"Digest email skipped: {e}")
+
+    if is_1am and not dry_run:
+        try:
+            from gst_compliance_engine import detect_shrinkage_anomalies
+            logging.info("▶ Running shrinkage detection (1 AM job)")
+            result = detect_shrinkage_anomalies()
+            logging.info(f"  Shrinkage detection: {result.get('total_alerts', 0)} alerts created")
+        except Exception as e:
+            logging.warning(f"Shrinkage detection skipped: {e}")
+
+    if is_2am and not dry_run:
+        try:
+            from gst_compliance_engine import reconcile_gst_transactions
+            from supabase import create_client
+            import os
+            
+            logging.info("▶ Running GST reconciliation (2 AM job)")
+            supabase_url = os.environ.get("SUPABASE_URL")
+            supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+            
+            if supabase_url and supabase_key:
+                supabase = create_client(supabase_url, supabase_key)
+                warehouses = supabase.table("warehouses").select("id").execute().data or []
+                
+                recon_date = datetime.datetime.now().strftime("%Y-%m-%d")
+                for wh in warehouses:
+                    result = reconcile_gst_transactions(wh["id"], recon_date)
+                    logging.info(f"  Warehouse {wh['id']}: {result.get('audit_status', 'unknown')}")
+            else:
+                logging.warning("Supabase credentials not configured for GST reconciliation")
+        except Exception as e:
+            logging.warning(f"GST reconciliation skipped: {e}")
 
     logging.info("Pipeline complete.")
     if dry_run:

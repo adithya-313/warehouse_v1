@@ -13,17 +13,35 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   ScanLine,
+  TrendingUp,
+  Percent,
+  Users,
+  ShoppingCart,
+  ShieldAlert,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
-  { href: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard },
-  { href: "/picking",      label: "Picking",       icon: ScanLine },
-  { href: "/transfers",    label: "Transfers",     icon: ArrowRightLeft },
-  { href: "/cycle-counts",label: "Cycle Counts", icon: ClipboardList },
-  { href: "/discrepancies", label: "Discrepancies", icon: AlertTriangle },
-  { href: "/alerts",       label: "Alerts",        icon: Bell },
-  { href: "/settings",      label: "Settings",      icon: Settings },
+  { href: "/dashboard",       label: "Dashboard",            icon: LayoutDashboard },
+  { href: "/products",       label: "Products",             icon: Package },
+  { href: "/picking",        label: "Picking",              icon: ScanLine },
+  { href: "/transfers",      label: "Transfers",            icon: ArrowRightLeft },
+  { href: "/cycle-counts",   label: "Cycle Counts",         icon: ClipboardList },
+  { href: "/discrepancies",  label: "Discrepancies",        icon: AlertTriangle },
+  { href: "/alerts",         label: "Alerts",               icon: Bell },
+  { divider: true },
+  { href: "/suppliers",              label: "Suppliers",              icon: Users },
+  { href: "/supplier-orders",        label: "Supplier Orders",        icon: ShoppingCart },
+  { divider: true },
+  { href: "/forecasting",            label: "Demand Forecasting",    icon: TrendingUp },
+  { href: "/liquidation-recommendations", label: "Liquidation",      icon: Percent },
+  { href: "/analytics/demand-trends", label: "Demand Trends",        icon: TrendingUp },
+  { divider: true },
+  { href: "/shrinkage",            label: "Shrinkage Detection",  icon: ShieldAlert },
+  { href: "/gst-compliance",       label: "GST Compliance",      icon: FileText },
+  { divider: true },
+  { href: "/settings",       label: "Settings",             icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -44,7 +62,11 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-0.5">
-        {nav.map(({ href, label, icon: Icon }) => {
+        {nav.map((item, index) => {
+          if ("divider" in item) {
+            return <div key={`divider-${index}`} className="my-2 border-t border-slate-800" />;
+          }
+          const { href, label, icon: Icon } = item;
           const active = pathname.startsWith(href);
           return (
             <Link

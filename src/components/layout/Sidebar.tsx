@@ -20,6 +20,7 @@ import {
   ShieldAlert,
   FileText,
   Zap,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ const nav = [
   { href: "/forecasting",            label: "Demand Forecasting",    icon: TrendingUp },
   { href: "/liquidation-recommendations", label: "Liquidation",      icon: Percent },
   { href: "/analytics/demand-trends", label: "Demand Trends",        icon: TrendingUp },
+  { href: "/analytics/executive-dashboard", label: "Executive Dashboard", icon: BarChart3 },
   { divider: true },
   { href: "/shrinkage",            label: "Shrinkage Detection",  icon: ShieldAlert },
   { href: "/gst-compliance",       label: "GST Compliance",      icon: FileText },

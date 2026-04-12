@@ -40,6 +40,8 @@ const nav = [
   { href: "/liquidation-recommendations", label: "Liquidation",      icon: Percent },
   { href: "/analytics/demand-trends", label: "Demand Trends",        icon: TrendingUp },
   { href: "/analytics/executive-dashboard", label: "Executive Dashboard", icon: BarChart3 },
+  { href: "/analytics/financial-impact", label: "Financial Impact", icon: BarChart3 },
+  { href: "/analytics/heatmaps",     label: "Heatmaps",             icon: Zap },
   { divider: true },
   { href: "/shrinkage",            label: "Shrinkage Detection",  icon: ShieldAlert },
   { href: "/gst-compliance",       label: "GST Compliance",      icon: FileText },

@@ -19,6 +19,7 @@ import {
   ShoppingCart,
   ShieldAlert,
   FileText,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,8 @@ const nav = [
   { divider: true },
   { href: "/shrinkage",            label: "Shrinkage Detection",  icon: ShieldAlert },
   { href: "/gst-compliance",       label: "GST Compliance",      icon: FileText },
+  { divider: true },
+  { href: "/pitch-demo",           label: "Pitch Demo",          icon: Zap },
   { divider: true },
   { href: "/settings",       label: "Settings",             icon: Settings },
 ];

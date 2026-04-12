@@ -1,0 +1,12 @@
+[POST demand-forecast/single] {"error":"product_id, warehouse_id, and days_ahead required"}
+[GET demand-trends] {"error":"product_id and warehouse_id required"}
+[GET liquidation-recommendations] {"error":"warehouse_id required"}
+[POST liquidation-recommendations/b1000000-0000-0000-0000-000000000002/acknowledge] {"error":"manager_id required"}
+[GET overstock-analysis] {"error":"warehouse_id required"}
+[GET supplier-orders] []
+[POST supplier-orders/b1000000-0000-0000-0000-000000000002/receive] {"error":"actual_delivery is required"}
+[GET supplier-performance/low-performers] []
+[GET suppliers] [{"id":"b1000000-0000-0000-0000-000000000002","name":"Pharma Direct Ltd.","contact":"orders@pharmadirect.in","avg_lead_time_days":3,"created_at":"2026-04-11T15:49:26.479118+00:00","contact_person":null,"email":null,"phone":null,"payment_terms":30,"category":"secondary","rating":null,"status":"active","supplier_performance":null},{"id":"b1000000-0000-0000-0000-000000000001","name":"Reliance Supply Co.","contact":"reliance@supply.in","avg_lead_time_days":5,"created_at":"2026-04-11T15:49:26.479118+00:00","contact_person":null,"email":null,"phone":null,"payment_terms":30,"category":"secondary","rating":null,"status":"active","supplier_performance":null},{"id":"b1000000-0000-0000-0000-000000000003","name":"TechParts India Pvt.","contact":"sales@techparts.in","avg_lead_time_days":10,"created_at":"2026-04-11T15:49:26.479118+00:00","contact_person":null,"email":null,"phone":null,"payment_terms":30,"category":"secondary","rating":null,"status":"active","supplier_performance":null}]
+[PATCH suppliers/b1000000-0000-0000-0000-000000000002] {"error":"Cannot coerce the result to a single JSON object"}
+[GET suppliers/b1000000-0000-0000-0000-000000000002/performance] {"performance":{"on_time_delivery_pct":0,"quality_score":100,"avg_lead_time_days":0,"last_30_days_orders":0,"total_cost_30_days":0,"reliability_score":0},"orders":[],"chart_data":[]}
+[POST sync/trigger] {"message":"Sync triggered. Run: python python/cron_runner.py to execute manually.","triggered_at":"2026-04-11T20:35:02.019Z"}

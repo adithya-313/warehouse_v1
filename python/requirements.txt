@@ -5,3 +5,4 @@ pandas==2.2.2
 numpy==1.26.4
 resend==0.8.0
 schedule==1.2.1
+prophet==1.1.5

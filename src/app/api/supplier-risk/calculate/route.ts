@@ -1,0 +1,45 @@
+import { NextResponse } from "next/server";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { supplier_id } = body;
+
+    if (!supplier_id) {
+      return NextResponse.json({ error: "supplier_id is required" }, { status: 400 });
+    }
+
+    const { stdout, stderr } = await execAsync(`python python/supplier_risk_engine.py calculate ${supplier_id}`, {
+      // 1 hour cache handled by Next.js if caching headers set, or manually cache if preferred. For App router standard:
+    });
+
+    if (stderr && !stdout) {
+      console.error("Python Stderr:", stderr);
+      return NextResponse.json({ error: "Failed to calculate supplier health" }, { status: 500 });
+    }
+
+    const result = JSON.parse(stdout.trim());
+    
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    // Add last_updated as requested by specs
+    return NextResponse.json({
+      ...result,
+      last_updated: new Date().toISOString()
+    }, { 
+      status: 200,
+      headers: {
+        'Cache-Control': 's-maxage=3600, stale-while-revalidate'
+      }
+    });
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+  }
+}

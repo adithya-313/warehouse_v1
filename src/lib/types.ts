@@ -11,6 +11,9 @@ export type AlertSeverity = "info" | "warning" | "critical";
 export type StockMovementType = "in" | "out" | "transfer";
 export type SyncStatus = "success" | "partial" | "failed";
 export type DemandTrend = "rising" | "stable" | "falling";
+export type LiquidationAction = "liquidate_discount" | "transfer_to_hub" | "return_to_supplier" | "bundle_promotion";
+export type UrgencyLevel = "low" | "medium" | "high";
+export type DaysAhead = 30 | 60 | 90;
 
 export interface Warehouse {
   id: string;
@@ -24,8 +27,62 @@ export interface Supplier {
   id: string;
   name: string;
   contact: string | null;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
   avg_lead_time_days: number;
+  payment_terms: number;
+  category: SupplierCategory;
+  rating: number | null;
+  status: SupplierStatus;
   created_at: string;
+}
+
+export type SupplierCategory = "primary" | "secondary" | "emergency";
+export type SupplierStatus = "active" | "inactive";
+
+export interface SupplierOrder {
+  id: string;
+  supplier_id: string;
+  product_id: string;
+  order_date: string;
+  expected_delivery: string;
+  actual_delivery: string | null;
+  ordered_qty: number;
+  received_qty: number | null;
+  unit_cost: number;
+  total_cost: number | null;
+  on_time: boolean | null;
+  quality_issues: boolean;
+  status: "pending" | "received" | "cancelled";
+  logged_by: string | null;
+  received_by: string | null;
+  created_at: string;
+  updated_at: string;
+  suppliers?: Pick<Supplier, "id" | "name"> | null;
+  products?: Pick<Product, "id" | "name" | "category"> | null;
+}
+
+export interface SupplierPerformance {
+  id: string;
+  supplier_id: string;
+  on_time_delivery_pct: number;
+  quality_score: number;
+  avg_lead_time_days: number;
+  last_30_days_orders: number;
+  total_cost_30_days: number;
+  reliability_score: number;
+  updated_at: string;
+  suppliers?: Pick<Supplier, "id" | "name" | "rating" | "category" | "status"> | null;
+}
+
+export interface SupplierWithPerformance extends Supplier {
+  performance?: SupplierPerformance;
+}
+
+export interface SupplierOrderRow extends SupplierOrder {
+  supplier_name?: string;
+  product_name?: string;
 }
 
 export interface Product {
@@ -399,4 +456,85 @@ export interface PickerPerformance {
   avg_efficiency: number;
   avg_batch_time_minutes: number;
   accuracy: number;
+}
+
+// ============================================================
+// DEMAND FORECASTING TYPES
+// ============================================================
+
+export interface DemandForecast {
+  id: string;
+  product_id: string;
+  warehouse_id: string;
+  forecast_date: string;
+  days_ahead: DaysAhead;
+  predicted_qty: number;
+  confidence_lower: number;
+  confidence_upper: number;
+  confidence_score: number;
+  trend: DemandTrend;
+  created_at: string;
+  // Joined
+  products?: Pick<Product, "id" | "name" | "category" | "unit"> | null;
+  warehouses?: Pick<Warehouse, "id" | "name" | "location"> | null;
+}
+
+export interface LiquidationRecommendation {
+  id: string;
+  product_id: string;
+  warehouse_id: string;
+  current_qty: number;
+  days_to_expiry: number | null;
+  recommended_action: LiquidationAction;
+  discount_pct: number;
+  urgency_level: UrgencyLevel;
+  estimated_revenue_loss: number;
+  created_at: string;
+  acknowledged_by: string | null;
+  acknowledged_at: string | null;
+  // Joined
+  products?: Pick<Product, "id" | "name" | "category" | "unit"> | null;
+  warehouses?: Pick<Warehouse, "id" | "name" | "location"> | null;
+}
+
+export interface ForecastSummary {
+  total_products: number;
+  forecasted: number;
+  errors: number;
+  rising: number;
+  stable: number;
+  falling: number;
+  avg_confidence: number;
+  warehouse_id?: string;
+  last_run?: string;
+}
+
+export interface ForecastRow extends DemandForecast {
+  current_qty: number;
+  avg_daily_demand: number;
+  pred_30: number;
+  pred_60: number;
+  pred_90: number;
+  confidence_30: number;
+  confidence_60: number;
+  confidence_90: number;
+}
+
+export interface DemandTrendData {
+  historical: { date: string; quantity: number }[];
+  forecast: { date: string; predicted: number; lower: number; upper: number }[];
+  trend: DemandTrend;
+}
+
+export interface OverstockItem {
+  product_id: string;
+  product_name: string;
+  category: string | null;
+  current_qty: number;
+  days_supply: number;
+  predicted_qty_30: number;
+  recommended_discount: number;
+  urgency_level: UrgencyLevel;
+  capital_tied_up: number;
+  estimated_revenue_loss: number;
 }

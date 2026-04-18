@@ -12,6 +12,15 @@ function TrendIcon({ trend }: { trend: DemandTrend }) {
   return <Minus className="w-3.5 h-3.5 text-slate-400" />;
 }
 
+function ForecastBadge({ eligible }: { eligible: boolean }) {
+  if (!eligible) return null;
+  return (
+    <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded bg-cyan-500/20 text-cyan-400">
+      ML
+    </span>
+  );
+}
+
 function classificationBadge(cls: Classification): string {
   switch (cls) {
     case "Fast Moving":   return "bg-green-500/15 text-green-400";
@@ -35,9 +44,12 @@ export default function ProductsPage() {
 
   const fetchProducts = async () => {
     setLoading(true);
-    const r = await fetch("/api/products");
+    const r = await fetch("/api/products", { cache: 'no-store' });
     if (r.ok) {
-      setProducts(await r.json());
+      const data = await r.json();
+      console.log("[DEBUG CLIENT] Received from API:", data[0]);
+      console.log("[products] Fetched Products Count:", data.length);
+      setProducts(data);
     }
     setLoading(false);
   };
@@ -130,7 +142,10 @@ export default function ProductsPage() {
                   return (
                     <tr key={product.id} className={cn("trow border-l-2", isLow ? "border-l-red-500" : "border-l-transparent")}>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-slate-100">{product.name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-slate-100">{product.name}</span>
+                          <ForecastBadge eligible={product.forecasting_eligible ?? false} />
+                        </div>
                         {product.expiry_date && (
                           <div className="text-xs text-slate-500">Exp: {product.expiry_date}</div>
                         )}

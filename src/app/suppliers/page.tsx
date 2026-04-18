@@ -57,7 +57,9 @@ export default function SuppliersPage() {
 
     const r = await fetch(`/api/suppliers?${params}`);
     if (r.ok) {
-      setSuppliers(await r.json());
+      const data = await r.json();
+      console.log("RAW_SUPPLIER_DATA:", data[0]);
+      setSuppliers(data);
     }
     setLoading(false);
   };
@@ -118,59 +120,54 @@ export default function SuppliersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-800 text-xs uppercase text-slate-500">
-                  <th className="text-left px-4 py-3 font-medium">Supplier</th>
-                  <th className="text-center px-4 py-3 font-medium">Category</th>
-                  <th className="text-center px-4 py-3 font-medium">Status</th>
-                  <th className="text-center px-4 py-3 font-medium">Rating</th>
-                  <th className="text-right px-4 py-3 font-medium">On-Time %</th>
-                  <th className="text-right px-4 py-3 font-medium">Quality</th>
-                  <th className="text-center px-4 py-3 font-medium">Reliability</th>
-                  <th className="px-4 py-3" />
+                  <th className="text-left px-4 py-3 font-medium min-w-[180px]">Supplier</th>
+                  <th className="text-center px-4 py-3 font-medium w-28">Category</th>
+                  <th className="text-center px-4 py-3 font-medium w-24">Status</th>
+                  <th className="text-center px-4 py-3 font-medium w-24">Rating</th>
+                  <th className="text-right px-4 py-3 font-medium w-20">On-Time %</th>
+                  <th className="text-right px-4 py-3 font-medium w-20">Quality</th>
+                  <th className="text-center px-4 py-3 font-medium w-28">Reliability</th>
+                  <th className="px-4 py-3 w-20" />
                 </tr>
               </thead>
               <tbody>
                 {suppliers.map((supplier) => {
-                  const perf = supplier.performance;
+                  const perf = supplier.supplier_performance || {};
+                  const onTime = perf.on_time_delivery_pct != null ? `${perf.on_time_delivery_pct.toFixed(0)}%` : "—";
+                  const quality = perf.quality_score != null ? perf.quality_score.toFixed(0) : "—";
+                  const reliability = perf.reliability_score != null ? perf.reliability_score.toFixed(0) : "—";
                   const isLowPerformer = perf && perf.reliability_score < 60;
                   return (
                     <tr key={supplier.id} className={cn("trow", isLowPerformer && "border-l-2 border-l-red-500")}>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 min-w-[180px]">
                         <div className="font-medium text-slate-100">{supplier.name}</div>
                         <div className="text-xs text-slate-500">{supplier.email || "No email"}</div>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center w-28">
                         <span className={cn("pill text-xs", categoryColors[supplier.category])}>
                           {supplier.category}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={cn("pill text-xs", supplier.status === "active" ? "bg-green-500/15 text-green-400" : "bg-slate-500/15 text-slate-400")}>
+                      <td className="px-4 py-3 text-center w-24">
+                        <span className={cn("pill text-xs", supplier.status === "active" ? "bg-green-500/15 text-green-400 border-green-500/30" : "bg-slate-500/15 text-slate-400 border-slate-500/30")}>
                           {supplier.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center w-24">
                         <RatingStars rating={supplier.rating} />
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {perf ? (
-                          <span className={cn(reliabilityColor(perf.on_time_delivery_pct))}>
-                            {perf.on_time_delivery_pct.toFixed(0)}%
-                          </span>
-                        ) : (
-                          <span className="text-slate-600">—</span>
-                        )}
+                      <td className="px-4 py-3 text-right w-20 tabular-nums">
+                        <span className={perf.on_time_delivery_pct != null ? cn(reliabilityColor(perf.on_time_delivery_pct)) : "text-slate-600"}>
+                          {onTime}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {perf ? (
-                          <span className={cn(reliabilityColor(perf.quality_score))}>
-                            {perf.quality_score.toFixed(0)}
-                          </span>
-                        ) : (
-                          <span className="text-slate-600">—</span>
-                        )}
+                      <td className="px-4 py-3 text-right w-20 tabular-nums">
+                        <span className={perf.quality_score != null ? cn(reliabilityColor(perf.quality_score)) : "text-slate-600"}>
+                          {quality}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        {perf ? (
+                      <td className="px-4 py-3 text-center w-28">
+                        {perf.reliability_score != null ? (
                           <div className="flex items-center justify-center gap-2">
                             {perf.reliability_score < 60 && (
                               <AlertTriangle className="w-4 h-4 text-red-400" />
@@ -183,7 +180,7 @@ export default function SuppliersPage() {
                           <span className="text-slate-600">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right w-20">
                         <Link
                           href={`/suppliers/${supplier.id}`}
                           className="text-xs text-cyan-400 hover:text-cyan-300 transition"

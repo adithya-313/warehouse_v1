@@ -75,10 +75,10 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json(forecast);
-  } catch (error: any) {
-    console.error("[demand-forecast/single POST]", error);
+  } catch (err: any) {
+    console.error("[demand-forecast/single POST]", err);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: "Internal Server Error", details: err.message },
       { status: 500 }
     );
   }

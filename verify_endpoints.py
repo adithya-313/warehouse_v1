@@ -1,18 +1,19 @@
 import requests
 
 endpoints = [
-    ("POST", "http://localhost:3001/api/demand-forecast/single"),
-    ("GET", "http://localhost:3001/api/demand-trends"),
-    ("GET", "http://localhost:3001/api/liquidation-recommendations"),
-    ("POST", "http://localhost:3001/api/liquidation-recommendations/test/acknowledge"),
-    ("GET", "http://localhost:3001/api/overstock-analysis"),
-    ("GET", "http://localhost:3001/api/supplier-orders"),
-    ("GET", "http://localhost:3001/api/supplier-orders/test/receive"),
-    ("GET", "http://localhost:3001/api/supplier-performance/low-performers"),
-    ("GET", "http://localhost:3001/api/suppliers"),
-    ("GET", "http://localhost:3001/api/suppliers/test"),
-    ("GET", "http://localhost:3001/api/suppliers/test/performance"),
-    ("POST", "http://localhost:3001/api/sync/trigger"),
+    ("POST", "http://localhost:3000/api/demand-forecast/single"),
+    ("GET", "http://localhost:3000/api/demand-trends"),
+    ("GET", "http://localhost:3000/api/liquidation-recommendations"),
+    ("POST", "http://localhost:3000/api/liquidation-recommendations/test/acknowledge"),
+    ("GET", "http://localhost:3000/api/overstock-analysis"),
+    ("GET", "http://localhost:3000/api/supplier-orders"),
+    ("GET", "http://localhost:3000/api/supplier-orders/test/receive"),
+    ("GET", "http://localhost:3000/api/supplier-performance/low-performers"),
+    ("GET", "http://localhost:3000/api/suppliers"),
+    ("GET", "http://localhost:3000/api/suppliers/test"),
+    ("GET", "http://localhost:3000/api/suppliers/test/performance"),
+    ("POST", "http://localhost:3000/api/sync/trigger"),
+    ("GET", "http://localhost:3000/api/dashboard/summary"),
 ]
 
 for method, url in endpoints:

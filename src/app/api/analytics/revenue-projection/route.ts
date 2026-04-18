@@ -1,22 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const projections = [
-    { year: 1, customers: 100, arr_crore: 5, tam_pct: 0.02 },
-    { year: 2, customers: 300, arr_crore: 15, tam_pct: 0.06 },
-    { year: 3, customers: 800, arr_crore: 40, tam_pct: 0.15 },
-    { year: 4, customers: 1400, arr_crore: 70, tam_pct: 0.25 },
-    { year: 5, customers: 2000, arr_crore: 100, tam_pct: 1.0 },
-  ];
+  try {
+    // Revenue projection model: 3x YoY growth from 5 pilot customers
+    const projections = [
+      { year: 1, customers: 5,    arr_crore: 0.25,  tam_pct: 0.01 },
+      { year: 2, customers: 25,   arr_crore: 1.25,  tam_pct: 0.05 },
+      { year: 3, customers: 100,  arr_crore: 5.0,   tam_pct: 0.2  },
+      { year: 4, customers: 350,  arr_crore: 17.5,  tam_pct: 0.7  },
+      { year: 5, customers: 1000, arr_crore: 50.0,  tam_pct: 2.0  },
+    ];
 
-  const industryGrowth = { cagr: 20, source: "Industry benchmarks" };
-
-  return NextResponse.json({
-    data: projections,
-    summary: {
-      year_5_arr: 100,
-      total_customers: 2000,
-      tam_capture: "1%",
-    },
-  });
+    return NextResponse.json({ data: projections });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

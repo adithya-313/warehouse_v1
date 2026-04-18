@@ -4,10 +4,11 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Package, AlertTriangle, Warehouse, TrendingUp,
-  Search, ChevronRight, ArrowUpDown
+  Search, ChevronRight, ArrowUpDown, Loader2
 } from "lucide-react";
 import { cn, healthColor, classificationColor, formatDays, formatNumber, formatDate } from "@/lib/utils";
 import type { ProductRow, DashboardSummary, HealthLabel, Classification } from "@/lib/types";
+import StockoutRiskWidget from "@/components/StockoutRiskWidget";
 
 // ─── Metric Card ─────────────────────────────────────────────
 function MetricCard({
@@ -50,18 +51,30 @@ export default function DashboardPage() {
   const [summary,  setSummary]  = useState<DashboardSummary | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [loading,  setLoading]  = useState(true);
+  const [error,   setError]    = useState<string | null>(null);
   const [search,   setSearch]   = useState("");
   const [catFilter,setCatFilter]= useState("all");
   const [clsFilter,setClsFilter]= useState("all");
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/dashboard/summary").then((r) => r.json()),
-      fetch("/api/products").then((r) => r.json()),
-    ]).then(([sum, prods]) => {
-      setSummary(sum);
-      setProducts(Array.isArray(prods) ? prods : []);
-    }).finally(() => setLoading(false));
+      fetch("/api/dashboard/summary", { cache: 'no-store' }).then((r) => r.json()),
+      fetch("/api/products", { cache: 'no-store' }).then((r) => r.json()),
+    ])
+      .then(([sum, prods]) => {
+        if (sum?.error) {
+          setError(sum.error);
+        } else {
+          setSummary(sum as DashboardSummary);
+        }
+        console.log("[dashboard] Fetched Products Count:", prods?.length ?? 0);
+        setProducts(Array.isArray(prods) ? prods : []);
+      })
+      .catch((err) => {
+        console.error("[dashboard fetch]", err);
+        setError("Failed to load dashboard");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const categories    = useMemo(() => ["all", ...Array.from(new Set(products.map((p) => p.category ?? "—")))], [products]);
@@ -83,6 +96,18 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
           <span className="text-sm">Loading dashboard…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="card p-6 text-center border-red-500/30">
+          <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-3" />
+          <p className="text-red-400 font-medium">Error Loading Dashboard</p>
+          <p className="text-slate-500 text-sm mt-1">{error}</p>
         </div>
       </div>
     );
@@ -129,6 +154,13 @@ export default function DashboardPage() {
             <span className={cn("text-xl font-bold", color)}>{value}</span>
           </div>
         ))}
+      </div>
+
+      {/* Stockout Risk Widget */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <StockoutRiskWidget />
+        </div>
       </div>
 
       {/* Filters */}

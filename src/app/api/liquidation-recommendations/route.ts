@@ -144,8 +144,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ count: recs.length });
-  } catch (error: any) {
-    console.error("[liquidation-recommendations POST]", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+  } catch (err: any) {
+    console.error("[liquidation-recommendations POST]", err);
+    return NextResponse.json({ error: "Internal Server Error", details: err.message }, { status: 500 });
   }
 }

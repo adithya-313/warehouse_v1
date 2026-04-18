@@ -1,0 +1,644 @@
+{
+  "communities": {
+    "0": [
+      "route_calculategst",
+      "route_delete",
+      "route_get",
+      "route_patch",
+      "route_post",
+      "route_sortbyzoneandlocation",
+      "route_updatesupplierperformance",
+      "route_validateewaybillformat",
+      "src_app_api_alerts_route_ts",
+      "src_app_api_analytics_customer_economics_route_ts",
+      "src_app_api_analytics_forecast_accuracy_route_ts",
+      "src_app_api_analytics_id_route_ts",
+      "src_app_api_analytics_picker_efficiency_route_ts",
+      "src_app_api_analytics_picking_density_route_ts",
+      "src_app_api_analytics_product_velocity_route_ts",
+      "src_app_api_analytics_revenue_projection_route_ts",
+      "src_app_api_analytics_roi_calculator_route_ts",
+      "src_app_api_analytics_shrinkage_hotspots_route_ts",
+      "src_app_api_analytics_shrinkage_trend_route_ts",
+      "src_app_api_analytics_value_unlocked_route_ts",
+      "src_app_api_analytics_warehouse_utilization_route_ts",
+      "src_app_api_analytics_zone_activity_route_ts",
+      "src_app_api_bin_locations_route_ts",
+      "src_app_api_cycle_counts_id_finalize_route_ts",
+      "src_app_api_cycle_counts_id_items_record_route_ts",
+      "src_app_api_cycle_counts_id_progress_route_ts",
+      "src_app_api_cycle_counts_id_route_ts",
+      "src_app_api_cycle_counts_id_start_route_ts",
+      "src_app_api_cycle_counts_route_ts",
+      "src_app_api_dashboard_summary_route_ts",
+      "src_app_api_demand_forecast_route_ts",
+      "src_app_api_demand_forecast_single_route_ts",
+      "src_app_api_demand_trends_route_ts",
+      "src_app_api_gst_reconciliation_audit_report_route_ts",
+      "src_app_api_gst_reconciliation_route_ts",
+      "src_app_api_gst_reconciliation_validate_e_way_bill_route_ts",
+      "src_app_api_gst_transactions_route_ts",
+      "src_app_api_inventory_discrepancies_id_route_ts",
+      "src_app_api_inventory_discrepancies_route_ts",
+      "src_app_api_liquidation_recommendations_id_acknowledge_route_ts",
+      "src_app_api_liquidation_recommendations_route_ts",
+      "src_app_api_overstock_analysis_route_ts",
+      "src_app_api_pick_batches_id_assign_route_ts",
+      "src_app_api_pick_batches_id_complete_route_ts",
+      "src_app_api_pick_batches_id_items_item_id_pick_route_ts",
+      "src_app_api_pick_batches_id_route_route_ts",
+      "src_app_api_pick_batches_id_route_ts",
+      "src_app_api_pick_batches_route_ts",
+      "src_app_api_products_route_ts",
+      "src_app_api_shrinkage_alerts_id_resolve_route_ts",
+      "src_app_api_shrinkage_alerts_route_ts",
+      "src_app_api_shrinkage_analytics_route_ts",
+      "src_app_api_stock_levels_reserved_route_ts",
+      "src_app_api_supplier_orders_id_receive_route_ts",
+      "src_app_api_supplier_orders_route_ts",
+      "src_app_api_supplier_performance_low_performers_route_ts",
+      "src_app_api_supplier_risk_alerts_route_ts",
+      "src_app_api_supplier_risk_all_route_ts",
+      "src_app_api_supplier_risk_assess_route_ts",
+      "src_app_api_supplier_risk_calculate_route_ts",
+      "src_app_api_supplier_risk_id_route_ts",
+      "src_app_api_supplier_risk_predict_route_ts",
+      "src_app_api_suppliers_id_performance_route_ts",
+      "src_app_api_suppliers_id_route_ts",
+      "src_app_api_suppliers_route_ts",
+      "src_app_api_sync_status_route_ts",
+      "src_app_api_sync_trigger_route_ts",
+      "src_app_api_transfers_id_approve_route_ts",
+      "src_app_api_transfers_id_cancel_route_ts",
+      "src_app_api_transfers_id_receive_route_ts",
+      "src_app_api_transfers_id_route_ts",
+      "src_app_api_transfers_id_ship_route_ts",
+      "src_app_api_transfers_route_ts",
+      "src_app_api_upload_csv_route_ts",
+      "src_app_api_warehouses_route_ts"
+    ],
+    "1": [
+      "forecast_engine_add_custom_regressors",
+      "forecast_engine_calculate_mape",
+      "forecast_engine_fit_prophet_with_validation",
+      "forecast_engine_forecast_demand_production",
+      "forecast_engine_generate_all_forecasts",
+      "forecast_engine_generate_all_liquidation",
+      "forecast_engine_generate_forecasts",
+      "forecast_engine_get_category_average",
+      "forecast_engine_liquidation_recommendations",
+      "forecast_engine_prepare_demand_data",
+      "forecast_engine_rationale_1",
+      "forecast_engine_rationale_134",
+      "forecast_engine_rationale_148",
+      "forecast_engine_rationale_177",
+      "forecast_engine_rationale_230",
+      "forecast_engine_rationale_409",
+      "forecast_engine_rationale_43",
+      "forecast_engine_rationale_523",
+      "forecast_engine_rationale_63",
+      "forecast_engine_rationale_644",
+      "forecast_engine_rationale_660",
+      "forecast_engine_rationale_96",
+      "forecast_engine_remove_outliers",
+      "python_forecast_engine_py"
+    ],
+    "2": [
+      "page_additem",
+      "page_buildchartdata",
+      "page_calculategst",
+      "page_classificationbadge",
+      "page_fetchproducts",
+      "page_fetchsuppliers",
+      "page_handleproductchange",
+      "page_handlequantitychange",
+      "page_handlesubmit",
+      "page_reliabilitybg",
+      "page_reliabilitycolor",
+      "page_removeitem",
+      "page_searchorder",
+      "page_trendicon",
+      "page_updateqty",
+      "src_app_cycle_counts_new_page_tsx",
+      "src_app_gst_transactions_new_page_tsx",
+      "src_app_products_id_page_tsx",
+      "src_app_products_page_tsx",
+      "src_app_supplier_orders_new_page_tsx",
+      "src_app_supplier_orders_receive_page_tsx",
+      "src_app_suppliers_id_page_tsx",
+      "src_app_suppliers_page_tsx",
+      "src_app_transfers_new_page_tsx"
+    ],
+    "3": [
+      "drift_monitoring_job_calculate_rolling_mape",
+      "drift_monitoring_job_calculate_velocity",
+      "drift_monitoring_job_check_consecutive_alerts",
+      "drift_monitoring_job_get_all_products",
+      "drift_monitoring_job_get_previous_mape",
+      "drift_monitoring_job_get_recent_demand",
+      "drift_monitoring_job_rationale_1",
+      "drift_monitoring_job_rationale_149",
+      "drift_monitoring_job_rationale_170",
+      "drift_monitoring_job_rationale_188",
+      "drift_monitoring_job_rationale_207",
+      "drift_monitoring_job_rationale_227",
+      "drift_monitoring_job_rationale_42",
+      "drift_monitoring_job_rationale_60",
+      "drift_monitoring_job_rationale_81",
+      "drift_monitoring_job_run_drift_monitoring",
+      "drift_monitoring_job_save_drift_log",
+      "drift_monitoring_job_send_alert",
+      "python_drift_monitoring_job_py"
+    ],
+    "4": [
+      "monthly_retraining_job_calculate_velocity",
+      "monthly_retraining_job_get_all_products",
+      "monthly_retraining_job_get_old_mape",
+      "monthly_retraining_job_get_product_demand_data",
+      "monthly_retraining_job_rationale_1",
+      "monthly_retraining_job_rationale_138",
+      "monthly_retraining_job_rationale_157",
+      "monthly_retraining_job_rationale_235",
+      "monthly_retraining_job_rationale_31",
+      "monthly_retraining_job_rationale_40",
+      "monthly_retraining_job_rationale_58",
+      "monthly_retraining_job_rationale_90",
+      "monthly_retraining_job_retrain_all_products",
+      "monthly_retraining_job_run_scheduled_retraining",
+      "monthly_retraining_job_save_forecast_metrics",
+      "monthly_retraining_job_train_and_evaluate_prophet",
+      "python_monthly_retraining_job_py"
+    ],
+    "5": [
+      "generate_extended_demand_generate_demand_data",
+      "generate_extended_demand_get_inventory_products",
+      "generate_extended_demand_insert_demand_batch",
+      "generate_extended_demand_main",
+      "generate_extended_demand_rationale_1",
+      "generate_extended_demand_rationale_118",
+      "generate_extended_demand_rationale_136",
+      "generate_extended_demand_rationale_199",
+      "generate_extended_demand_rationale_39",
+      "generate_extended_demand_rationale_54",
+      "generate_extended_demand_train_prophet",
+      "generate_extended_demand_validate_patterns",
+      "python_generate_extended_demand_py"
+    ],
+    "6": [
+      "python_sync_agent_py",
+      "sync_agent_normalize_name",
+      "sync_agent_pull_from_csv",
+      "sync_agent_pull_from_tally",
+      "sync_agent_rationale_1",
+      "sync_agent_rationale_118",
+      "sync_agent_rationale_50",
+      "sync_agent_rationale_58",
+      "sync_agent_rationale_99",
+      "sync_agent_run",
+      "sync_agent_upsert_to_supabase",
+      "sync_agent_write_sync_log"
+    ],
+    "7": [
+      "gst_compliance_engine_calculate_gst",
+      "gst_compliance_engine_calculate_severity",
+      "gst_compliance_engine_detect_shrinkage_anomalies",
+      "gst_compliance_engine_extract_bin_location",
+      "gst_compliance_engine_generate_monthly_audit_report",
+      "gst_compliance_engine_get_shrinkage_analytics",
+      "gst_compliance_engine_reconcile_gst_transactions",
+      "gst_compliance_engine_reconciliation_count",
+      "gst_compliance_engine_send_shrinkage_notification",
+      "gst_compliance_engine_validate_e_way_bill",
+      "python_gst_compliance_engine_py"
+    ],
+    "8": [
+      "health_score_label",
+      "health_score_rationale_1",
+      "health_score_rationale_27",
+      "health_score_rationale_35",
+      "health_score_rationale_44",
+      "health_score_run",
+      "health_score_score_days_stockout",
+      "health_score_score_demand_trend",
+      "health_score_score_expiry",
+      "health_score_score_stock_level",
+      "python_health_score_py"
+    ],
+    "9": [
+      "python_supplier_risk_engine_py",
+      "supplier_risk_engine_assess_all_suppliers",
+      "supplier_risk_engine_calculate_supplier_health",
+      "supplier_risk_engine_generate_risk_assessment",
+      "supplier_risk_engine_predict_supplier_failure_risk",
+      "supplier_risk_engine_rationale_165",
+      "supplier_risk_engine_rationale_22",
+      "supplier_risk_engine_rationale_247",
+      "supplier_risk_engine_rationale_270",
+      "supplier_risk_engine_rationale_91",
+      "supplier_risk_engine_run_supplier_risk_job"
+    ],
+    "10": [
+      "page_cn",
+      "page_fetchdata",
+      "page_handleexportcsv",
+      "page_handlereconcile",
+      "page_handleresolve",
+      "page_resolvediscrepancy",
+      "src_app_discrepancies_page_tsx",
+      "src_app_gst_compliance_page_tsx",
+      "src_app_picking_page_tsx",
+      "src_app_shrinkage_page_tsx",
+      "src_app_transfers_page_tsx"
+    ],
+    "11": [
+      "src_lib_utils_ts",
+      "utils_classificationcolor",
+      "utils_cn",
+      "utils_formatdate",
+      "utils_formatdays",
+      "utils_formatnumber",
+      "utils_formattimeago",
+      "utils_healthcolor",
+      "utils_healthscoregradient",
+      "utils_severitycolor"
+    ],
+    "12": [
+      "notifier_build_digest_html",
+      "notifier_rationale_1",
+      "notifier_rationale_27",
+      "notifier_rationale_52",
+      "notifier_rationale_93",
+      "notifier_send_daily_digest",
+      "notifier_send_whatsapp",
+      "notifier_send_whatsapp_batch",
+      "python_notifier_py"
+    ],
+    "13": [
+      "prophet_analysis_analyze_single_product",
+      "prophet_analysis_check_data_quality",
+      "prophet_analysis_get_all_movement_data",
+      "prophet_analysis_main",
+      "prophet_analysis_rationale_1",
+      "prophet_analysis_rationale_26",
+      "prophet_analysis_rationale_50",
+      "prophet_analysis_rationale_84",
+      "python_prophet_analysis_py"
+    ],
+    "14": [
+      "alert_engine_make_action",
+      "alert_engine_rationale_1",
+      "alert_engine_rationale_20",
+      "alert_engine_rationale_48",
+      "alert_engine_run",
+      "alert_engine_upsert_alert",
+      "python_alert_engine_py"
+    ],
+    "15": [
+      "etl_pipeline_calc_demand_trend",
+      "etl_pipeline_calc_expiry_risk",
+      "etl_pipeline_rationale_1",
+      "etl_pipeline_rationale_22",
+      "etl_pipeline_rationale_40",
+      "etl_pipeline_run",
+      "python_etl_pipeline_py"
+    ],
+    "16": [
+      "page_fetchprogress",
+      "page_finalizecount",
+      "page_getpreviewvariance",
+      "page_handlesearch",
+      "page_recordcount",
+      "page_startcount",
+      "src_app_cycle_counts_id_page_tsx"
+    ],
+    "17": [
+      "python_supplier_performance_py",
+      "supplier_performance_calculate_supplier_performance",
+      "supplier_performance_get_low_performers",
+      "supplier_performance_rationale_1",
+      "supplier_performance_run",
+      "supplier_performance_update_all_supplier_performance"
+    ],
+    "18": [
+      "page_fetchalldata",
+      "page_formatcurrency",
+      "page_formatinr",
+      "src_app_analytics_executive_dashboard_page_tsx",
+      "src_app_analytics_financial_impact_page_tsx"
+    ],
+    "19": [
+      "page_classbadge",
+      "page_dashboardpage",
+      "page_healthpill",
+      "page_metriccard",
+      "src_app_dashboard_page_tsx"
+    ],
+    "20": [
+      "page_assignbatch",
+      "page_completebatch",
+      "page_handlebarcodescan",
+      "page_pickitem",
+      "src_app_picking_id_page_tsx"
+    ],
+    "21": [
+      "classifier_classify",
+      "classifier_rationale_1",
+      "classifier_run",
+      "python_classifier_py"
+    ],
+    "22": [
+      "cron_runner_main",
+      "cron_runner_pipeline",
+      "cron_runner_rationale_1",
+      "python_cron_runner_py"
+    ],
+    "23": [
+      "python_sync_monitor_py",
+      "sync_monitor_rationale_1",
+      "sync_monitor_rationale_21",
+      "sync_monitor_run"
+    ],
+    "24": [
+      "page_confidencebar",
+      "page_generateforecasts",
+      "page_trendbadge",
+      "src_app_forecasting_page_tsx"
+    ],
+    "25": [
+      "page_handlecsvupload",
+      "page_handlemanualsync",
+      "page_section",
+      "src_app_settings_page_tsx"
+    ],
+    "26": [
+      "page_fetchalerts",
+      "page_resolve",
+      "src_app_alerts_page_tsx"
+    ],
+    "27": [
+      "page_handlereceive",
+      "page_performaction",
+      "src_app_transfers_id_page_tsx"
+    ],
+    "28": [
+      "python_test_tally_connection_py",
+      "test_tally_connection_rationale_1"
+    ],
+    "29": [
+      "layout_rootlayout",
+      "src_app_layout_tsx"
+    ],
+    "30": [
+      "page_home",
+      "src_app_page_tsx"
+    ],
+    "31": [
+      "page_loaddata",
+      "src_app_analytics_heatmaps_page_tsx"
+    ],
+    "32": [
+      "page_fetchcounts",
+      "src_app_cycle_counts_page_tsx"
+    ],
+    "33": [
+      "page_acknowledge",
+      "src_app_liquidation_recommendations_page_tsx"
+    ],
+    "34": [
+      "page_fetchorders",
+      "src_app_supplier_orders_page_tsx"
+    ],
+    "35": [
+      "sidebar_sidebar",
+      "src_components_layout_sidebar_tsx"
+    ],
+    "36": [
+      "src_components_layout_topbar_tsx",
+      "topbar_topbar"
+    ],
+    "37": [
+      "client_createclient",
+      "src_lib_supabase_client_ts"
+    ],
+    "38": [
+      "server_createserverclient",
+      "src_lib_supabase_server_ts"
+    ],
+    "39": [
+      "check_py"
+    ],
+    "40": [
+      "next_env_d_ts"
+    ],
+    "41": [
+      "tailwind_config_ts"
+    ],
+    "42": [
+      "verify_endpoints_py"
+    ],
+    "43": [
+      "verify_supplier_endpoints_py"
+    ],
+    "44": [
+      "src_app_analytics_demand_trends_page_tsx"
+    ],
+    "45": [
+      "src_app_picking_performance_page_tsx"
+    ],
+    "46": [
+      "src_app_pitch_demo_page_tsx"
+    ],
+    "47": [
+      "src_app_stock_levels_reserved_page_tsx"
+    ],
+    "48": [
+      "src_app_warehouse_layout_page_tsx"
+    ],
+    "49": [
+      "src_lib_types_ts"
+    ]
+  },
+  "cohesion": {
+    "0": 0.03,
+    "1": 0.11,
+    "2": 0.08,
+    "3": 0.15,
+    "4": 0.17,
+    "5": 0.22,
+    "6": 0.26,
+    "7": 0.27,
+    "8": 0.27,
+    "9": 0.25,
+    "10": 0.24,
+    "11": 0.2,
+    "12": 0.28,
+    "13": 0.31,
+    "14": 0.38,
+    "15": 0.38,
+    "16": 0.29,
+    "17": 0.53,
+    "18": 0.5,
+    "19": 0.4,
+    "20": 0.4,
+    "21": 0.67,
+    "22": 0.67,
+    "23": 0.5,
+    "24": 0.5,
+    "25": 0.5,
+    "26": 0.67,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0,
+    "49": 1.0
+  },
+  "gods": [
+    {
+      "id": "route_get",
+      "label": "GET()",
+      "edges": 49
+    },
+    {
+      "id": "route_post",
+      "label": "POST()",
+      "edges": 36
+    },
+    {
+      "id": "drift_monitoring_job_run_drift_monitoring",
+      "label": "run_drift_monitoring()",
+      "edges": 9
+    },
+    {
+      "id": "monthly_retraining_job_retrain_all_products",
+      "label": "retrain_all_products()",
+      "edges": 8
+    },
+    {
+      "id": "forecast_engine_forecast_demand_production",
+      "label": "forecast_demand_production()",
+      "edges": 6
+    },
+    {
+      "id": "generate_extended_demand_main",
+      "label": "main()",
+      "edges": 6
+    },
+    {
+      "id": "health_score_run",
+      "label": "run()",
+      "edges": 6
+    },
+    {
+      "id": "page_handlesubmit",
+      "label": "handleSubmit()",
+      "edges": 6
+    },
+    {
+      "id": "page_fetchdata",
+      "label": "fetchData()",
+      "edges": 6
+    },
+    {
+      "id": "prophet_analysis_analyze_single_product",
+      "label": "analyze_single_product()",
+      "edges": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "POST()",
+      "target": "validateEWayBillFormat()",
+      "source_files": [
+        "src\\app\\api\\upload\\csv\\route.ts",
+        "src\\app\\api\\gst-transactions\\route.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `validateEWayBillFormat()` unexpectedly reaches hub `POST()`"
+    },
+    {
+      "source": "POST()",
+      "target": "calculateGST()",
+      "source_files": [
+        "src\\app\\api\\upload\\csv\\route.ts",
+        "src\\app\\api\\gst-transactions\\route.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `calculateGST()` unexpectedly reaches hub `POST()`"
+    },
+    {
+      "source": "POST()",
+      "target": "updateSupplierPerformance()",
+      "source_files": [
+        "src\\app\\api\\upload\\csv\\route.ts",
+        "src\\app\\api\\supplier-orders\\[id]\\receive\\route.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `updateSupplierPerformance()` unexpectedly reaches hub `POST()`"
+    },
+    {
+      "source": "handleReconcile()",
+      "target": "fetchData()",
+      "source_files": [
+        "src\\app\\gst-compliance\\page.tsx",
+        "src\\app\\transfers\\page.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `handleReconcile()` unexpectedly reaches hub `fetchData()`"
+    },
+    {
+      "source": "handleResolve()",
+      "target": "fetchData()",
+      "source_files": [
+        "src\\app\\shrinkage\\page.tsx",
+        "src\\app\\transfers\\page.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `handleResolve()` unexpectedly reaches hub `fetchData()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `alert_engine.py \u2014 Smart Alert Generator Reads product_analytics and creates ale`, `Generate a human-readable recommended action string.`, `Insert alert if it doesn't already exist (unresolved). Attach action.` to the rest of the system?",
+      "why": "69 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.03 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.11 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 2` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

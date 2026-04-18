@@ -5,6 +5,12 @@ import time
 BASE_URL = "http://localhost:3001/api/supplier-risk"
 
 print("========================================")
+print("SUPPLIER RISK INGESTION DIAGNOSTIC")
+print("========================================")
+print(f"Target: {BASE_URL}")
+print(f"Started at: {time.strftime('%H:%M:%S')}")
+
+print("========================================")
 print("TESTING SUPPLIER RISK DASHBOARD APIs")
 print("========================================")
 
@@ -19,10 +25,12 @@ if res_all.status_code != 200:
 all_data = res_all.json()
 print(f"Found {len(all_data)} suppliers.")
 
-# Get a valid ID, or fallback
-supplier_id = "b3000000-0000-0000-0000-000000000001"
+# Get a valid ID from /all response
+supplier_id = "b1000000-0000-0000-0000-000000000001"
 if len(all_data) > 0:
-    supplier_id = all_data[0].get("supplier_id", supplier_id)
+    first = all_data[0]
+    supplier_id = first.get("supplier_id") or first.get("id") or supplier_id
+    print(f"First supplier in list: {supplier_id}")
 
 print(f"Using supplier_id: {supplier_id}")
 

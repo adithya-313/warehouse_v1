@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 from supabase import create_client
 
+
+
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
@@ -19,6 +21,41 @@ E_WAY_BILL_PATTERN = re.compile(r"^\d{12}$")
 
 CRITICAL_VALUE_THRESHOLD = 5000
 
+import requests
+from functools import wraps
+import time
+import logging
+
+MAX_RETRIES = 3
+REQUEST_TIMEOUT = 10  # seconds
+
+def retry_with_timeout(max_retries: int = MAX_RETRIES, timeout: int = REQUEST_TIMEOUT):
+    """
+    Decorator: Deterministic timeout + exponential retry policy for external government APIs.
+    Prevents thread locking if the GST portal goes down.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_retries):
+                try:
+                    kwargs['timeout'] = timeout
+                    return func(*args, **kwargs)
+                except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                    last_exception = e
+                    backoff_time = 2 ** attempt  
+                    logging.warning(f"[NETWORK_BOUNDARY_FAIL] Attempt {attempt + 1} failed. Retrying in {backoff_time}s...")
+                    time.sleep(backoff_time)
+            
+            logging.error(f"[NETWORK_BOUNDARY_FATAL] External API unreachable after {max_retries} attempts.")
+            return {
+                "status": "QUEUED_FOR_RETRY",
+                "error": str(last_exception),
+                "message": "Government portal unreachable. Task pushed to background queue."
+            }
+        return wrapper
+    return decorator
 
 def calculate_severity(variance_pct: float, unit_cost: float, alert_type: str) -> str:
     variance_value = abs(variance_pct) * unit_cost
@@ -311,38 +348,48 @@ def validate_e_way_bill(e_way_bill_number: str, state_from: Optional[str], state
     return {"valid": valid, "issues": issues}
 
 
+from decimal import Decimal, ROUND_HALF_UP
+
 def calculate_gst(taxable_amount: float, gst_rate: float, state_from: str, state_to: str) -> dict:
-    if gst_rate not in VALID_GST_RATES:
-        return {"error": f"Invalid GST rate. Must be one of: {VALID_GST_RATES}"}
+    """Calculate GST with absolute precision using decimal.Decimal. Serialized to string to prevent network-layer float drift."""
     
-    is_inter_state = state_from != state_to
+    # Convert string representation of floats to Decimal to guarantee exact base-10 initialization
+    taxable = Decimal(str(taxable_amount))
+    rate = Decimal(str(gst_rate))
     
-    gst_amount = round(taxable_amount * (gst_rate / 100), 2)
+    # Calculate total GST amount with strict rounding
+    gst_amount = (taxable * rate / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
+    # State routing logic
+    is_inter_state = state_from.strip().upper() != state_to.strip().upper()
     
     if is_inter_state:
         tax_type = "IGST"
-        cgst = 0
-        sgst = 0
+        cgst = Decimal("0.00")
+        sgst = Decimal("0.00")
         igst = gst_amount
     else:
         tax_type = "CGST+SGST"
-        cgst = round(gst_amount / 2, 2)
-        sgst = round(gst_amount / 2, 2)
-        igst = 0
+        cgst = (gst_amount / Decimal("2")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        sgst = (gst_amount / Decimal("2")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        igst = Decimal("0.00")
     
+    total_invoice_value = taxable + gst_amount
+
+    # Serialize entirely to String to bypass V8 Engine JSON float conversion
     return {
-        "taxable_amount": taxable_amount,
-        "gst_rate": gst_rate,
-        "gst_amount": gst_amount,
-        "cgst": cgst,
-        "sgst": sgst,
-        "igst": igst,
+        "taxable_amount": str(taxable),
+        "gst_rate": str(rate),
+        "gst_amount": str(gst_amount),
+        "cgst": str(cgst),
+        "sgst": str(sgst),
+        "igst": str(igst),
         "is_inter_state": is_inter_state,
         "tax_type": tax_type,
         "state_from": state_from,
-        "state_to": state_to
+        "state_to": state_to,
+        "total_invoice_value": str(total_invoice_value)
     }
-
 
 def get_shrinkage_analytics(warehouse_id: str, days: int = 30) -> dict:
     if not supabase:

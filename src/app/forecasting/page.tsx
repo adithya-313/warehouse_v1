@@ -18,24 +18,27 @@ const trendColor = {
   falling: "text-red-400 bg-red-500/15",
 };
 
-function TrendBadge({ trend }: { trend: DemandTrend }) {
-  const Icon = trendIcon[trend];
+function TrendBadge({ trend }: { trend?: DemandTrend | string | null }) {
+  const safeTrend = trend || "stable";
+  const Icon = trendIcon[safeTrend as DemandTrend] || Minus;
+  const colorKey = safeTrend as keyof typeof trendColor;
   return (
-    <span className={cn("pill gap-1.5", trendColor[trend])}>
+    <span className={cn("pill gap-1.5", trendColor[colorKey] || trendColor.stable)}>
       <Icon className="w-3 h-3" />
-      {trend.charAt(0).toUpperCase() + trend.slice(1)}
+      {safeTrend ? (safeTrend.charAt(0).toUpperCase() + safeTrend.slice(1)) : "Stable"}
     </span>
   );
 }
 
-function ConfidenceBar({ score }: { score: number }) {
-  const color = score >= 70 ? "bg-green-500" : score >= 40 ? "bg-yellow-500" : "bg-red-500";
+function ConfidenceBar({ score = 0 }: { score?: number }) {
+  const safeScore = score ?? 0;
+  const color = safeScore >= 70 ? "bg-green-500" : safeScore >= 40 ? "bg-yellow-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">
       <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${score}%` }} />
+        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${safeScore}%` }} />
       </div>
-      <span className="text-xs tabular-nums text-slate-400">{score.toFixed(0)}%</span>
+      <span className="text-xs tabular-nums text-slate-400">{(safeScore || 0).toFixed(0)}%</span>
     </div>
   );
 }
@@ -68,20 +71,66 @@ export default function ForecastingPage() {
       .then((r) => r.json())
       .then((fc) => {
         if (Array.isArray(fc)) {
-          setForecasts(fc);
-          if (fc.length > 0) {
-            const byProduct = new Map<string, DemandForecast[]>();
-            for (const f of fc as DemandForecast[]) {
+          console.log("FORECAST_ITEM_SAMPLE:", fc[0]);
+          
+          // Add days_ahead calculation based on forecast_date
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const processedForecasts = fc.map((f: any) => {
+            const forecastDate = new Date(f.forecast_date);
+            const diffTime = forecastDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            // Calculate trend and ensure all numeric fields have fallbacks
+            let trend: "rising" | "stable" | "falling" = "stable";
+            if (diffDays > 0 && f.predicted_qty) {
+              trend = f.trend || "stable";
+            }
+            return { 
+              ...f, 
+              days_ahead: diffDays, 
+              trend,
+              predicted_qty: f.predicted_qty ?? 0,
+              confidence_upper: f.confidence_upper ?? 0,
+              confidence_lower: f.confidence_lower ?? 0,
+            };
+          });
+          
+          setForecasts(processedForecasts);
+          if (processedForecasts.length > 0) {
+            const byProduct = new Map<string, any[]>();
+            for (const f of processedForecasts) {
               if (!byProduct.has(f.product_id)) byProduct.set(f.product_id, []);
               byProduct.get(f.product_id)!.push(f);
             }
-            const valid = Array.from(byProduct.values()).filter((arr) => arr.length >= 3);
+            const valid = Array.from(byProduct.values()).filter((arr) => arr.length >= 14);
             const trends = { rising: 0, stable: 0, falling: 0 };
             let totalConf = 0;
+            let confCount = 0;
             for (const arr of valid) {
-              const f30 = arr.find((f) => f.days_ahead === 30);
-              if (f30?.trend) trends[f30.trend]++;
-              if (f30?.confidence_score) totalConf += f30.confidence_score;
+              // Sort by date to ensure correct ordering
+              const sorted = [...arr].sort((a, b) => a.forecast_date.localeCompare(b.forecast_date));
+              // Window calculation: First 7 days vs Last 7 days
+              const firstWeek = sorted.slice(0, 7);
+              const lastWeek = sorted.slice(-7);
+              const avgFirst = firstWeek.reduce((sum, f) => sum + (f.predicted_qty || 0), 0) / firstWeek.length;
+              const avgLast = lastWeek.reduce((sum, f) => sum + (f.predicted_qty || 0), 0) / lastWeek.length;
+              let productTrend = "stable";
+              if (avgFirst > 0 && avgLast > 0) {
+                const ratio = avgLast / avgFirst;
+                if (ratio > 1.15) productTrend = "rising";
+                else if (ratio < 0.85) productTrend = "falling";
+              }
+              if (productTrend === "rising") trends.rising++;
+              else if (productTrend === "falling") trends.falling++;
+              else trends.stable++;
+              // Confidence from day 30 (or middle of forecast)
+              const f30 = arr.find((f) => f.days_ahead >= 28 && f.days_ahead <= 32);
+              if (f30?.confidence_upper != null && f30?.confidence_lower != null && f30?.predicted_qty) {
+                const confidenceScore = 100 - (((f30.confidence_upper - f30.confidence_lower) / 2 / f30.predicted_qty) * 100);
+                totalConf += Math.max(0, Math.min(100, confidenceScore));
+                confCount++;
+              }
             }
             setSummary({
               total_products: valid.length,
@@ -90,7 +139,7 @@ export default function ForecastingPage() {
               rising: trends.rising,
               stable: trends.stable,
               falling: trends.falling,
-              avg_confidence: valid.length > 0 ? totalConf / valid.length : 0,
+              avg_confidence: confCount > 0 ? Math.round(totalConf / confCount) : 75,
               warehouse_id: selectedWarehouse,
               last_run: new Date().toISOString(),
             });
@@ -118,11 +167,13 @@ export default function ForecastingPage() {
       });
       const result = await r.json();
       if (r.ok) {
-        setSummary(result);
         const refresh = await fetch(`/api/demand-forecast?warehouse_id=${selectedWarehouse}`);
         if (refresh.ok) {
           const fc = await refresh.json();
           setForecasts(Array.isArray(fc) ? fc : []);
+          // Trigger a re-render to recalculate summary
+          setSelectedWarehouse("");
+          setTimeout(() => setSelectedWarehouse(selectedWarehouse), 100);
         }
       } else {
         console.error("Forecast generation failed:", result.error);
@@ -260,6 +311,14 @@ export default function ForecastingPage() {
             </>
           )}
 
+          {forecasts.length > 0 && (
+            <div className="card p-3 bg-cyan-900/30 border border-cyan-500/30">
+              <div className="text-sm text-cyan-400">
+                DEBUG: Found {forecasts.length} forecast rows for Warehouse {selectedWarehouse}
+              </div>
+            </div>
+          )}
+
           {loading && (
             <div className="flex items-center justify-center h-64">
               <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
@@ -330,14 +389,40 @@ export default function ForecastingPage() {
                     </tr>
                   )}
                   {byProduct.map(({ forecasts: arr, product }) => {
-                    const f30 = arr.find((f) => f.days_ahead === 30);
-                    const f60 = arr.find((f) => f.days_ahead === 60);
-                    const f90 = arr.find((f) => f.days_ahead === 90);
+                    // Sort by forecast_date for proper window calculation
+                    const sorted = [...arr].sort((a, b) => a.forecast_date.localeCompare(b.forecast_date));
+                    const firstWeek = sorted.slice(0, 7);
+                    const lastWeek = sorted.slice(-7);
+                    const avgFirst = firstWeek.reduce((sum, f) => sum + (f.predicted_qty || 0), 0) / firstWeek.length;
+                    const avgLast = lastWeek.reduce((sum, f) => sum + (f.predicted_qty || 0), 0) / lastWeek.length;
+                    
+                    let displayTrend: "rising" | "stable" | "falling" = "stable";
+                    let displayConfidence = 0;
+                    
+                    if (avgFirst > 0 && avgLast > 0) {
+                      const ratio = avgLast / avgFirst;
+                      displayTrend = ratio > 1.15 ? "rising" : ratio < 0.85 ? "falling" : "stable";
+                    }
+                    
+                    // Confidence from day 30
+                    const f30 = arr.find((f) => f.days_ahead >= 28 && f.days_ahead <= 32);
+                    if (f30?.confidence_upper != null && f30?.confidence_lower != null && f30?.predicted_qty) {
+                      const range = f30.confidence_upper - f30.confidence_lower;
+                      const midpoint = range / 2;
+                      displayConfidence = f30.predicted_qty > 0 
+                        ? Math.max(0, Math.min(100, 100 - (midpoint / f30.predicted_qty * 100)))
+                        : 75;
+                    } else {
+                      displayConfidence = 75;
+                    }
+                    
+                    const f60 = arr.find((f) => f.days_ahead >= 58 && f.days_ahead <= 62);
+                    const f90 = arr.find((f) => f.days_ahead >= 88 && f.days_ahead <= 92);
                     return (
                       <tr key={arr[0].product_id} className="trow">
                         <td className="px-4 py-3 font-medium text-slate-100">{product?.name || "Unknown"}</td>
                         <td className="px-4 py-3 text-center">
-                          {f30 && <TrendBadge trend={f30.trend} />}
+                          <TrendBadge trend={displayTrend} />
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-200">
                           {f30 ? formatNumber(f30.predicted_qty) : "—"}
@@ -349,7 +434,7 @@ export default function ForecastingPage() {
                           {f90 ? formatNumber(f90.predicted_qty) : "—"}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {f30 && <ConfidenceBar score={f30.confidence_score} />}
+                          <ConfidenceBar score={displayConfidence} />
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Link

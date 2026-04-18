@@ -1,40 +1,31 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const metrics = {
-    cac: 50000,
-    ltv: 500000,
-    ltv_cac_ratio: 10,
-    payback_months: 3,
-    gross_margin: 65,
-    arpu_monthly: 10000,
-    nrr: 115,
-    churn_rate: 5,
-    expansion_revenue_pct: 15,
-  };
+  try {
+    const cohort_data = [
+      { month: 'M1',  revenue: 41667,  retained: 100 },
+      { month: 'M2',  revenue: 43750,  retained: 105 },
+      { month: 'M3',  revenue: 45000,  retained: 108 },
+      { month: 'M4',  revenue: 47500,  retained: 114 },
+      { month: 'M5',  revenue: 50000,  retained: 120 },
+      { month: 'M6',  revenue: 52083,  retained: 125 },
+    ];
 
-  const breakdown = [
-    { category: "One-time Setup", amount: 20000, pct: 40 },
-    { category: "Implementation", amount: 15000, pct: 30 },
-    { category: "Training", amount: 10000, pct: 20 },
-    { category: "Onboarding", amount: 5000, pct: 10 },
-  ];
-
-  const cohortData = [
-    { month: "M1", revenue: 10000, retained: 100 },
-    { month: "M3", revenue: 11500, retained: 95 },
-    { month: "M6", revenue: 13225, retained: 90 },
-    { month: "M12", revenue: 15208, retained: 85 },
-  ];
-
-  return NextResponse.json({
-    data: metrics,
-    breakdown,
-    cohort_data: cohortData,
-    summary: {
-      unit_economics: "Strong LTV:CAC ratio of 10:1",
-      payback: "3 months payback period",
-      retention: "115% NRR (expansion revenue included)",
-    },
-  });
+    return NextResponse.json({
+      data: {
+        cac: 75000,
+        ltv: 750000,
+        ltv_cat_ratio: 10,
+        payback_months: 3,
+        gross_margin: 75,
+        arpu_monthly: 41667,
+        nrr: 115,
+        churn_rate: 5,
+        expansion_revenue_pct: 20,
+      },
+      cohort_data,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

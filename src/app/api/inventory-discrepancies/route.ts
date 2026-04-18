@@ -34,6 +34,8 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await dbQuery.order("created_at", { ascending: false });
 
+    console.log("SERVER_API_DISCREPANCIES_COUNT:", data?.length);
+    
     if (error) throw error;
     return NextResponse.json(data ?? []);
   } catch (err) {

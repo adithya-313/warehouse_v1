@@ -1,132 +1,249 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextRequest, NextResponse } from "next/server";
+import { spawn } from "child_process";
 import { createServerClient } from "@/lib/supabase/server";
-import type { DemandForecast, ForecastSummary } from "@/lib/types";
+import path from "path";
+import fs from "fs";
 
-export async function POST(req: NextRequest) {
-  const { warehouse_id } = await req.json();
-  if (!warehouse_id) {
-    return NextResponse.json({ error: "warehouse_id required" }, { status: 400 });
-  }
+const { join } = path;
+const { existsSync } = fs;
 
-  const supabase = createServerClient();
-
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffStr = cutoff.toISOString().split("T")[0];
-
-  const inventory = await supabase
-    .from("inventory")
-    .select("product_id, quantity")
-    .eq("warehouse_id", warehouse_id)
-    .execute();
-
-  let forecasted = 0;
-  let errors = 0;
-  let rising = 0;
-  let stable = 0;
-  let falling = 0;
-  const confidences: number[] = [];
-
-  for (const item of inventory.data || []) {
-    const movementsCount = await supabase
-      .from("stock_movements")
-      .select("id", { count: "exact" })
-      .eq("product_id", item.product_id)
-      .eq("warehouse_id", warehouse_id)
-      .eq("type", "out")
-      .gte("date", cutoffStr)
-      .execute();
-
-    if ((movementsCount.count || 0) < 30) continue;
-
-    for (const days of [30, 60, 90] as const) {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/demand-forecast/single`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              product_id: item.product_id,
-              warehouse_id,
-              days_ahead: days,
-            }),
-          }
-        );
-
-        if (response.ok) {
-          const forecast = await response.json();
-          await supabase
-            .from("demand_forecast")
-            .upsert(forecast, { onConflict: "product_id,warehouse_id,days_ahead" })
-            .execute();
-          forecasted++;
-          if (forecast.trend === "rising") rising++;
-          else if (forecast.trend === "falling") falling++;
-          else stable++;
-          confidences.push(forecast.confidence_score);
-        } else {
-          errors++;
-        }
-      } catch {
-        errors++;
-      }
+const getPythonScriptPath = () => {
+  const possiblePaths = [
+    join(process.cwd(), "python", "demand_forecaster.py"),
+    join(process.cwd(), "..", "python", "demand_forecaster.py"),
+    "C:\\Users\\sinne\\Downloads\\warehouse_v1\\warehouse_v1\\python\\demand_forecaster.py",
+  ];
+  
+  for (const p of possiblePaths) {
+    if (existsSync(p)) {
+      return p;
     }
   }
+  return possiblePaths[0];
+};
 
-  const summary: ForecastSummary = {
-    total_products: (inventory.data || []).length,
-    forecasted,
-    errors,
-    rising,
-    stable,
-    falling,
-    avg_confidence: confidences.length
-      ? Math.round((confidences.reduce((a, b) => a + b, 0) / confidences.length) * 100) / 100
-      : 0,
-    warehouse_id,
-    last_run: new Date().toISOString(),
-  };
+const PYTHON_DIR = join(process.cwd(), "python");
+const PYTHON_SCRIPT = getPythonScriptPath();
+const PYTHON_PATH = process.platform === "win32" ? "python" : "python3";
+const TIMEOUT_MS = 60000;
 
-  return NextResponse.json(summary);
+function runPythonForecast(productId: string, warehouseId?: string): Promise<{ output: string; exitCode: number }> {
+  return new Promise((resolve, reject) => {
+    if (!existsSync(PYTHON_SCRIPT)) {
+      reject(new Error(`Python script not found at: ${PYTHON_SCRIPT}`));
+      return;
+    }
+
+    console.log("[forecast] ==================");
+    console.log("[forecast] Windows Path Check:", process.platform);
+    console.log("[forecast] Script Path:", PYTHON_SCRIPT);
+    console.log("[forecast] Script Exists:", existsSync(PYTHON_SCRIPT));
+    console.log("[forecast] Product ID:", productId);
+    console.log("[forecast] Command:", PYTHON_PATH, PYTHON_SCRIPT, productId);
+    console.log("[forecast] ==================");
+    
+    const args = [PYTHON_SCRIPT, productId];
+    if (warehouseId) {
+      args.push(warehouseId);
+    }
+
+    const child = spawn(PYTHON_PATH, args, {
+      cwd: PYTHON_DIR,
+      shell: true,
+      windowsHide: true,
+    });
+
+    let stdout = "";
+    let stderr = "";
+    let killed = false;
+
+    const timeout = setTimeout(() => {
+      killed = true;
+      child.kill("SIGTERM");
+      console.error("[forecast] Process killed - timeout after 60s");
+      reject(new Error("Forecast timeout - process killed after 60 seconds"));
+    }, TIMEOUT_MS);
+
+    child.stdout?.on("data", (data) => {
+      const text = data.toString();
+      stdout += text;
+      process.stdout.write(text);
+    });
+
+    child.stderr?.on("data", (data) => {
+      const text = data.toString();
+      stderr += text;
+      process.stderr.write(text);
+    });
+
+    child.on("close", (code) => {
+      clearTimeout(timeout);
+      if (killed) return;
+      
+      console.log("[forecast] Process exited with code:", code);
+      resolve({ output: stdout, exitCode: code ?? 0 });
+    });
+
+    child.on("error", (err) => {
+      clearTimeout(timeout);
+      console.error("[forecast] Spawn error:", err.message);
+      reject(err);
+    });
+  });
+}
+
+const DEFAULT_WAREHOUSE_ID = "a1000000-0000-0000-0000-000000000001";
+
+async function fetchAllProductIds(supabase: any): Promise<string[]> {
+  const { data, error } = await supabase.from("products").select("id").limit(30);
+  if (error || !data) return [];
+  return data.map((p: any) => p.id);
+}
+
+export async function POST(req: NextRequest) {
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    body = {};
+  }
+
+  let product_id = body?.product_id;
+  let warehouse_id = body?.warehouse_id || DEFAULT_WAREHOUSE_ID;
+  
+  // Handle "generate all products" trigger (when only warehouse_id is provided)
+  if (!product_id && warehouse_id) {
+    console.log("[forecast] ====== GENERATE ALL PRODUCTS FOR WAREHOUSE ======");
+    console.log("[forecast] Warehouse ID:", warehouse_id);
+    
+    const supabase = createServerClient();
+    
+    // Get warehouse to validate it exists
+    const { data: warehouse, error: whError } = await supabase
+      .from("warehouses")
+      .select("id")
+      .eq("id", warehouse_id)
+      .single();
+    
+    if (whError || !warehouse) {
+      return NextResponse.json({ error: "Invalid warehouse_id" }, { status: 400 });
+    }
+    
+    const productIds = await fetchAllProductIds(supabase);
+    console.log(`[forecast] Found ${productIds.length} products to forecast`);
+    
+    // Use existing forecasts or generate simple ones if Python fails
+    const results = [];
+    for (const pid of productIds) {
+      try {
+        const result = await runPythonForecast(pid, warehouse_id);
+        results.push({ product_id: pid, success: result.exitCode === 0 });
+      } catch (e: any) {
+        results.push({ product_id: pid, success: false, error: e.message });
+      }
+    }
+    
+    return NextResponse.json({
+      status: "success",
+      processed: results.length,
+      results,
+      warehouse_id,
+      timestamp: new Date().toISOString(),
+    });
+  }
+  
+  if (!product_id) {
+    return NextResponse.json({ error: "product_id is required" }, { status: 400 });
+  }
+
+  // Handle "all-products" trigger
+  if (product_id === "all-products") {
+    console.log("[forecast] ====== FORECAST ALL PRODUCTS ======");
+    const supabase = createServerClient();
+    const productIds = await fetchAllProductIds(supabase);
+    console.log(`[forecast] Found ${productIds.length} products to forecast`);
+    
+    const results = [];
+    for (const pid of productIds) {
+      try {
+        const result = await runPythonForecast(pid, warehouse_id);
+        results.push({ product_id: pid, success: result.exitCode === 0 });
+      } catch (e: any) {
+        results.push({ product_id: pid, success: false, error: e.message });
+      }
+    }
+    
+    return NextResponse.json({
+      status: "success",
+      processed: results.length,
+      results,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  console.log("[forecast] ====== FORECAST TRIGGER START ======");
+  console.log("[forecast] Product:", product_id);
+  console.log("[forecast] Warehouse:", warehouse_id);
+
+  try {
+    const result = await runPythonForecast(product_id, warehouse_id);
+    
+    if (result.exitCode !== 0) {
+      console.error("[forecast] Python script failed:", result.exitCode);
+      return NextResponse.json(
+        { error: "Forecast script failed", exitCode: result.exitCode, output: result.output },
+        { status: 500 }
+      );
+    }
+
+    console.log("[forecast] ====== FORECAST TRIGGER SUCCESS ======");
+    
+    return NextResponse.json({
+      status: "success",
+      product_id,
+      warehouse_id,
+      exitCode: result.exitCode,
+      output: result.output,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error("[forecast] ====== FORECAST TRIGGER FAILED ======");
+    console.error("[forecast] Error:", err.message);
+    
+    return NextResponse.json(
+      { error: err.message || "Forecast failed" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const product_id = searchParams.get("product_id");
-  const warehouse_id = searchParams.get("warehouse_id");
+  const warehouse_id = searchParams.get("warehouse_id") || "a1000000-0000-0000-0000-000000000001";
   const days_ahead = searchParams.get("days_ahead");
 
   const supabase = createServerClient();
 
-  if (product_id && warehouse_id) {
-    let query = supabase
-      .from("demand_forecast")
-      .select("*, products(id, name, category, unit), warehouses(id, name, location)")
-      .eq("product_id", product_id)
-      .eq("warehouse_id", warehouse_id)
-      .order("days_ahead");
+  let query = supabase
+    .from("demand_forecasts")
+    .select("*, products(id, name, category, unit), warehouses(id, name, location)")
+    .eq("warehouse_id", warehouse_id);
 
-    if (days_ahead) {
-      query = query.eq("days_ahead", parseInt(days_ahead));
-    }
-
-    const { data, error } = await query;
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+  if (product_id) {
+    query = query.eq("product_id", product_id);
   }
 
-  if (warehouse_id) {
-    const { data, error } = await supabase
-      .from("demand_forecast")
-      .select("*, products(id, name, category, unit), warehouses(id, name, location)")
-      .eq("warehouse_id", warehouse_id)
-      .order("product_id")
-      .order("days_ahead");
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data || []);
+  if (days_ahead) {
+    query = query.eq("days_ahead", parseInt(days_ahead));
   }
 
-  return NextResponse.json({ error: "warehouse_id required" }, { status: 400 });
+  query = query.order("forecast_date");
+
+  const { data, error } = await query;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data || []);
 }

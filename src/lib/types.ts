@@ -175,6 +175,7 @@ export interface ProductRow {
   expiry_date: string | null;
   demand_trend: DemandTrend;
   warehouse_id: string | null;
+  forecasting_eligible?: boolean;
 }
 
 // Dashboard summary (top bar)
@@ -524,6 +525,7 @@ export interface DemandTrendData {
   historical: { date: string; quantity: number }[];
   forecast: { date: string; predicted: number; lower: number; upper: number }[];
   trend: DemandTrend;
+  insight?: string;
 }
 
 export interface OverstockItem {

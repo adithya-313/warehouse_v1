@@ -33,24 +33,11 @@ export default function DiscrepanciesPage() {
       fetch("/api/inventory-discrepancies").then((r) => r.json()),
       fetch("/api/warehouses").then((r) => r.json()),
     ]).then(([disc, wh]) => {
+      console.log("DEBUG_DISCREPANCY_RAW_FETCH:", disc);
       setDiscrepancies(Array.isArray(disc) ? disc : []);
       setWarehouses(Array.isArray(wh) ? wh : []);
     }).finally(() => setLoading(false));
   }, []);
-
-  const stats = useMemo(() => {
-    const open = discrepancies.filter((d) => !d.resolved);
-    return {
-      total: discrepancies.length,
-      open: open.length,
-      resolved: discrepancies.length - open.length,
-      byRootCause: Object.keys(rootCauseConfig).reduce((acc, cause) => {
-        acc[cause] = open.filter((d) => d.root_cause === cause).length;
-        return acc;
-      }, {} as Record<string, number>),
-      totalVarianceUnits: open.reduce((sum, d) => sum + Math.abs(d.variance), 0),
-    };
-  }, [discrepancies]);
 
   const filtered = useMemo(() => {
     return discrepancies.filter((d) => {
@@ -60,6 +47,21 @@ export default function DiscrepanciesPage() {
       return true;
     });
   }, [discrepancies, showResolved, filterWarehouse, filterRootCause]);
+
+  const stats = useMemo(() => {
+    const items = filtered;
+    const openItems = items.filter((d) => !d.resolved);
+    return {
+      total: items.length,
+      open: openItems.length,
+      resolved: items.length - openItems.length,
+      byRootCause: Object.keys(rootCauseConfig).reduce((acc, cause) => {
+        acc[cause] = items.filter((d) => d.root_cause === cause).length;
+        return acc;
+      }, {} as Record<string, number>),
+      totalVarianceUnits: items.reduce((sum, d) => sum + Math.abs(d.variance), 0),
+    };
+  }, [filtered]);
 
   const resolveDiscrepancy = async (id: string, rootCause?: DiscrepancyRootCause) => {
     setResolving(id);
@@ -104,7 +106,7 @@ export default function DiscrepanciesPage() {
         </Link>
         <h1 className="text-xl font-bold text-white flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-amber-400" />
-          Inventory Discrepancies
+          !!! LIVE SYNC: DISCREPANCIES !!!
         </h1>
         <p className="text-sm text-slate-500 mt-1">
           Review and resolve inventory variances from cycle counts
@@ -114,7 +116,7 @@ export default function DiscrepanciesPage() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="card p-4">
           <div className="text-2xl font-bold text-white">{stats.total}</div>
-          <div className="text-sm text-slate-400">Total Discrepancies</div>
+          <div className="text-sm text-slate-400">Total (Filtered)</div>
         </div>
         <div className="card p-4">
           <div className="text-2xl font-bold text-red-400">{stats.open}</div>

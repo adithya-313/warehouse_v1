@@ -17,6 +17,105 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+import time
+import logging
+import traceback
+from datetime import datetime
+
+def check_job_infrastructure():
+    """Diagnostic: Check if jobs table and RPC exist."""
+    issues = []
+    
+    # Check table
+    try:
+        supabase.table("risk_calculation_jobs").select("id").limit(1).execute()
+    except Exception as e:
+        issues.append(f"Table 'risk_calculation_jobs' missing")
+    
+    # Check RPC function
+    try:
+        supabase.rpc("claim_risk_job", {"p_job_type": "calculate"}).execute()
+    except Exception as e:
+        if "not found" in str(e).lower():
+            issues.append(f"RPC 'claim_risk_job' missing")
+        else:
+            pass  # RPC exists but no jobs
+    
+    return issues
+
+def run_worker():
+    """Persistent worker loop that continuously processes risk jobs."""
+    logging.info("Supplier Risk Worker initialized. Starting polling loop...")
+    
+    # Pre-flight check for infrastructure
+    issues = check_job_infrastructure()
+    if issues:
+        logging.info(f"[CLEAN_EXIT] Infrastructure not configured. Run SQL migration first.")
+        for issue in issues:
+            logging.info(f"  - {issue}")
+        logging.info("[INSTRUCTIONS] Execute the SQL migration in Supabase SQL Editor:")
+        logging.info("  1. CREATE TABLE risk_calculation_jobs (...)")
+        logging.info("  2. CREATE FUNCTION claim_risk_job(...)")
+        logging.info("  3. CREATE FUNCTION cleanup_zombie_jobs(...)")
+        return {"status": "not_configured", "issues": issues}
+    
+    while True:
+        try:
+            # 1. Atomic Claim: Try RPC first, fallback to direct SQL
+            try:
+                response = supabase.rpc('claim_risk_job', {'p_job_type': 'calculate'}).execute()
+                if not response.data or len(response.data) == 0:
+                    time.sleep(10)
+                    continue
+                job = response.data[0]
+                job_id = job['job_id']
+                supplier_id = job['supplier_id']
+            except Exception as rpc_err:
+                # Fallback: Manual claim without FOR UPDATE SKIP LOCKED
+                logging.warning(f"[RPC_UNAVAILABLE] Using fallback claim: {rpc_err}")
+                
+                # Find and claim a pending job
+                pending = supabase.table("risk_calculation_jobs").select("id, supplier_id").eq("job_type", "calculate").eq("status", "pending").order("created_at").limit(1).execute()
+                
+                if not pending.data:
+                    time.sleep(10)
+                    continue
+                
+                job_id = pending.data[0]['id']
+                supplier_id = pending.data[0]['supplier_id']
+                
+                # Mark as processing (race condition possible but acceptable fallback)
+                supabase.table("risk_calculation_jobs").update({"status": "processing", "started_at": datetime.now().isoformat()}).eq("id", job_id).execute()
+            
+            logging.info(f"[JOB_CLAIMED] Processing Job: {job_id} for Supplier: {supplier_id}")
+
+            try:
+                # 3. Execute Core Business Logic (calculate health + generate assessment)
+                result = calculate_supplier_health(supplier_id)
+
+                # 4. Finalize State: Mark as completed
+                supabase.table("risk_calculation_jobs").update({
+                    "status": "completed",
+                    "result": result,
+                    "completed_at": datetime.now().isoformat()
+                }).eq("id", job_id).execute()
+                
+                logging.info(f"[JOB_SUCCESS] Completed Job: {job_id}")
+
+            except Exception as e:
+                # 5. Exception Boundary: Mark as failed and log stack trace
+                error_msg = traceback.format_exc()
+                logging.error(f"[JOB_FAILED] Job: {job_id} Error: {str(e)}")
+                supabase.table("risk_calculation_jobs").update({
+                    "status": "failed",
+                    "error": error_msg,
+                    "completed_at": datetime.now().isoformat()
+                }).eq("id", job_id).execute()
+
+        except Exception as global_e:
+            logging.error(f"[WORKER_CRITICAL_FAIL] {str(global_e)}")
+            time.sleep(30) # Wait longer if the database connection is down
+
 
 def calculate_supplier_health(supplier_id: str) -> dict:
     """

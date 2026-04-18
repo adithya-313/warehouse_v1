@@ -270,14 +270,15 @@ class SupplierRiskAnalyzer:
         is_cold_start = n_receipts < COLD_START_THRESHOLD
         
         if n_receipts == 0:
-            # No data - return neutral score
+            # No data - return Bayesian prior
+            # Risk score = 75 (health = 25) → maps to "Standard"
             return self._build_result(
                 supplier_id=supplier_id,
-                delivery_score=50.0,
-                quality_score=50.0,
-                consistency_score=50.0,
-                time_decayed=50.0,
-                volume_weighted=50.0,
+                delivery_score=25.0,  # health score
+                quality_score=25.0,
+                consistency_score=25.0,
+                time_decayed=25.0,
+                volume_weighted=25.0,
                 sample_size=0,
                 is_cold_start=True,
                 factors={"reason": "no_receipt_data"}
@@ -407,24 +408,26 @@ class SupplierRiskAnalyzer:
         total_qty = sum(r.received_qty for r in receipts)
         avg_qty = total_qty / n_receipts if n_receipts > 0 else 0
         
-        # Large average orders get slight penalty if any delays exist
+        # Count late receipts for metadata
         late_receipts = [r for r in receipts if r.days_late > 0]
-        if late_receipts and avg_qty > 0:
-            late_qty = sum(r.received_qty for r in late_receipts)
-            late_ratio = late_qty / total_qty
-            
-            # Penalize if high proportion of volume was late
-            volume_penalty = late_ratio * 10  # Max 10 point penalty
-            volume_weighted_score = time_decayed_score - volume_penalty
+        
+        # Volume-weighted penalty: Apply penalty proportional to weighted delay
+        if total_weight > 0:
+            # Penalty = (avg_weighted_delay / 30) * 100, capped at 100
+            volume_penalty = min(100.0, (avg_weighted_delay / 30.0) * 100.0)
+            health_score = time_decayed_score - volume_penalty
         else:
-            volume_weighted_score = time_decayed_score
+            health_score = time_decayed_score
         
-        # Final score clamped to 0-100
-        final_score = max(0, min(100, volume_weighted_score))
+        # Final health score: 0-100 where 100 = perfect, 0 = failed
+        # Use the formula: max(0, min(100, 100 - total_penalty))
+        final_health_score = max(0.0, min(100.0, health_score))
         
-        # Invert: our scoring is "health" (100 = good, 0 = bad)
-        # Convert to "risk" (0 = good, 100 = bad) for output
-        risk_score = 100 - final_score
+        # Risk score: inverse of health (0 = good, 100 = bad)
+        risk_score = 100.0 - final_health_score
+        
+        # Store volume_weighted_score for result
+        volume_weighted_score = final_health_score
         
         return self._build_result(
             supplier_id=supplier_id,

@@ -15,8 +15,10 @@ Version: 2.0.0
 """
 
 import os
+import sys
 import logging
 import io
+import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Set
@@ -665,4 +667,56 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Tally ERP XML Sync Engine")
+    parser.add_argument("--file-url", type=str, help="Supabase Storage URL for XML file")
+    parser.add_argument("--file-path", type=str, help="Local file path (alternative to --file-url)")
+    args = parser.parse_args()
+    
+    if args.file_url:
+        # Stream from Supabase Storage URL
+        logger.info(f"Streaming from: {args.file_url}")
+        
+        sku_reconciler = SKUReconciler()
+        movements: List[InventoryMovement] = []
+        
+        def process_voucher(elem):
+            movement = extract_movement_from_voucher(elem, sku_reconciler)
+            if movement:
+                movements.append(movement)
+                if len(movements) >= BATCH_SIZE:
+                    batch_result = batch_upsert_movements(movements)
+                    movements.clear()
+        
+        # Stream from URL
+        try:
+            response = requests.get(args.file_url, stream=True)
+            response.raise_for_status()
+            
+            count = stream_from_string(response.text, process_voucher)
+            
+            # Resolve pending
+            orphans = sku_reconciler.resolve_pending()
+            
+            # Flush remaining
+            if movements:
+                result = batch_upsert_movements(movements)
+                print(f"total_vouchers: {count}")
+                print(f"new_inserts: {result.new_inserts}")
+                print(f"failed: {result.failed}")
+            else:
+                print(f"total_vouchers: {count}")
+                print(f"new_inserts: 0")
+                print(f"failed: 0")
+                
+        except requests.RequestException as e:
+            logger.error(f"Failed to fetch file: {e}")
+            sys.exit(1)
+            
+    elif args.file_path:
+        # Use local file (original behavior)
+        sync_tally_file(args.file_path)
+    else:
+        # Demo/test mode
+        main()

@@ -64,7 +64,7 @@ try:
     from darts.dataprocessing.transformers import Scaler
     from darts.dataprocessing import Dado
     DARTS_AVAILABLE = True
-except ImportError as e:
+except (ImportError, AttributeError, Exception) as e:
     DARTS_AVAILABLE = False
     logger.warning(f"WARNING: darts not available - {e}")
 
@@ -267,7 +267,7 @@ def prepare_darts_series(
     df: pd.DataFrame,
     time_col: str = "ds",
     value_col: str = "y",
-    static covariates: Optional[dict] = None
+    static_covariates: Optional[dict] = None
 ) -> 'TimeSeries':
     if df.empty or len(df) < 7:
         raise ValueError("Insufficient data for TimeSeries creation")

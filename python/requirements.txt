@@ -1,9 +1,13 @@
 supabase==2.4.2
 httpx==0.27.0
 python-dotenv==1.0.1
-pandas==2.2.2
-numpy==1.26.4
+pandas>=2.2.0
+numpy>=1.22.4,<2.3.0
 resend==0.8.0
 schedule==1.2.1
 prophet==1.1.5
 redis==5.0.0
+darts==0.29.0
+torch>=2.6.0
+pytorch-lightning>=2.6.0
+holidays>=0.41

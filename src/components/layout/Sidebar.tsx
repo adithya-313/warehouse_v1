@@ -22,6 +22,8 @@ import {
   FileText,
   Zap,
   BarChart3,
+  Database,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,8 @@ const nav = [
   { divider: true },
   { href: "/suppliers",              label: "Suppliers",              icon: Users },
   { href: "/supplier-orders",        label: "Supplier Orders",        icon: ShoppingCart },
+  { href: "/suppliers/risk",         label: "Supplier Risk",          icon: ShieldAlert },
+  { href: "/integrations/tally",       label: "ERP Integrations",      icon: Database },
   { divider: true },
   { href: "/forecasting",            label: "Demand Forecasting",    icon: TrendingUp },
   { href: "/liquidation-recommendations", label: "Liquidation",      icon: Percent },

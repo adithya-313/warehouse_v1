@@ -3,21 +3,28 @@ import { createServerClient } from "@/lib/supabase/server";
 import type { DemandTrendData } from "@/lib/types";
 import { calculateTrendFromSeries, generateInsight } from "@/lib/simulation-engine";
 
+export interface ForecastResponse {
+  date: string;
+  predicted_qty: number;
+  confidence_lower: number;
+  confidence_upper: number;
+  trend: "rising" | "falling" | "stable";
+}
+
 export async function GET(req: NextRequest) {
+  const product_id = req.nextUrl.searchParams.get("product_id");
+  const warehouse_id = req.nextUrl.searchParams.get("warehouse_id");
+
+  if (!product_id || !warehouse_id) {
+    return NextResponse.json(
+      { error: "product_id and warehouse_id required" },
+      { status: 400 }
+    );
+  }
+
+  const supabase = createServerClient();
+
   try {
-    const { searchParams } = new URL(req.url);
-    const product_id = searchParams.get("product_id");
-    const warehouse_id = searchParams.get("warehouse_id");
-
-    if (!product_id || !warehouse_id) {
-      return NextResponse.json(
-        { error: "product_id and warehouse_id required" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createServerClient();
-
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
     const cutoffStr = cutoff.toISOString().split("T")[0];
@@ -54,7 +61,7 @@ export async function GET(req: NextRequest) {
       .order("forecast_date", { ascending: true })
       .limit(90);
 
-    const forecastData: DemandTrendData["forecast"] = [];
+    const forecastData: ForecastResponse[] = [];
     let trend: "rising" | "stable" | "falling" = "stable";
     
     if (forecasts.data && forecasts.data.length > 0) {
@@ -62,19 +69,19 @@ export async function GET(req: NextRequest) {
         const dateStr = f.forecast_date;
         forecastData.push({
           date: dateStr,
-          predicted: f.predicted_qty ?? 0,
-          lower: f.confidence_lower ?? 0,
-          upper: f.confidence_upper ?? f.predicted_qty ?? 0,
+          predicted_qty: f.predicted_qty ?? 0,
+          confidence_lower: f.confidence_lower ?? 0,
+          confidence_upper: f.confidence_upper ?? f.predicted_qty ?? 0,
+          trend: f.trend || "stable",
         });
       }
       
-      // Window Comparison: First 7 days vs Last 7 days
       const firstWeek = forecastData.slice(0, 7);
       const lastWeek = forecastData.slice(-7);
       
       if (firstWeek.length > 0 && lastWeek.length > 0) {
-        const avgFirst = firstWeek.reduce((sum, f) => sum + f.predicted, 0) / firstWeek.length;
-        const avgLast = lastWeek.reduce((sum, f) => sum + f.predicted, 0) / lastWeek.length;
+        const avgFirst = firstWeek.reduce((sum, f) => sum + f.predicted_qty, 0) / firstWeek.length;
+        const avgLast = lastWeek.reduce((sum, f) => sum + f.predicted_qty, 0) / lastWeek.length;
         
         if (avgFirst > 0) {
           const ratio = avgLast / avgFirst;
@@ -83,15 +90,13 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    // Add mock historical data if none exists - align with forecast base
     if (historical.length === 0 && forecastData.length > 0) {
-      const baseValue = forecastData[0]?.predicted || 10;
+      const baseValue = forecastData[0]?.predicted_qty || 10;
       const today = new Date();
       for (let i = 7; i >= 1; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split("T")[0];
-        // Create smooth mock history that aligns with forecast start
         const dayOfWeek = d.getDay();
         const weeklyFactor = (dayOfWeek >= 1 && dayOfWeek <= 4) ? 0.8 : 1.3;
         const smoothedValue = Math.round(baseValue * weeklyFactor * (0.9 + Math.random() * 0.2));
@@ -101,7 +106,6 @@ export async function GET(req: NextRequest) {
         });
       }
     } else if (historical.length === 0) {
-      // Fallback random if no forecast
       const today = new Date();
       for (let i = 7; i >= 1; i--) {
         const d = new Date(today);
@@ -114,13 +118,26 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const result: DemandTrendData = {
+    const result: DemandTrendData & { mape: number | null } = {
       historical,
       forecast: forecastData,
       trend,
+      mape: null,
     };
 
-    // Calculate actionable insight
+    const mapeRes = await supabase
+      .from("model_metrics")
+      .select("mape")
+      .eq("product_id", product_id)
+      .eq("warehouse_id", warehouse_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (mapeRes.data) {
+      result.mape = mapeRes.data.mape;
+    }
+
     const inventoryRes = await supabase
       .from("inventory")
       .select("quantity")
@@ -131,8 +148,8 @@ export async function GET(req: NextRequest) {
     let insight = "";
     
     if (trend === "rising" && currentStock < 50) {
-      const daysToStockout = currentStock > 0 && forecastData[0]?.predicted > 0 
-        ? Math.floor(currentStock / forecastData[0].predicted) 
+      const daysToStockout = currentStock > 0 && forecastData[0]?.predicted_qty > 0 
+        ? Math.floor(currentStock / forecastData[0].predicted_qty) 
         : 7;
       insight = `Potential stockout in ${daysToStockout} days. Increase reorder qty.`;
     } else if (trend === "falling" && currentStock > 100) {
@@ -140,7 +157,7 @@ export async function GET(req: NextRequest) {
     } else if (trend === "stable") {
       insight = "Demand is stable. Maintain current reorder frequency.";
     } else if (forecastData.length > 0 && currentStock > 0) {
-      const avgPredicted = forecastData.slice(0, 30).reduce((sum, f) => sum + f.predicted, 0) / 30;
+      const avgPredicted = forecastData.slice(0, 30).reduce((sum, f) => sum + f.predicted_qty, 0) / 30;
       const daysSupply = avgPredicted > 0 ? Math.floor(currentStock / avgPredicted) : 30;
       if (daysSupply < 14) {
         insight = `Low stock coverage (${daysSupply} days). Consider expedited reorder.`;
@@ -157,7 +174,7 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error("[demand-trends GET]", err);
     return NextResponse.json(
-      { error: "Internal Server Error", details: err.message },
+      { error: err.message },
       { status: 500 }
     );
   }

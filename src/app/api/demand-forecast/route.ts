@@ -220,30 +220,52 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export interface ForecastResponse {
+  product_id: string;
+  date: string;
+  predicted_qty: number;
+  confidence_lower: number;
+  confidence_upper: number;
+  trend: "rising" | "falling" | "stable";
+}
+
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const product_id = searchParams.get("product_id");
-  const warehouse_id = searchParams.get("warehouse_id") || "a1000000-0000-0000-0000-000000000001";
-  const days_ahead = searchParams.get("days_ahead");
+  const warehouse_id = req.nextUrl.searchParams.get("warehouse_id") || "a1000000-0000-0000-0000-000000000001";
+  const product_id = req.nextUrl.searchParams.get("product_id");
+  const days_ahead = req.nextUrl.searchParams.get("days_ahead");
 
   const supabase = createServerClient();
 
-  let query = supabase
-    .from("demand_forecasts")
-    .select("*, products(id, name, category, unit), warehouses(id, name, location)")
-    .eq("warehouse_id", warehouse_id);
+  try {
+    let query = supabase
+      .from("demand_forecasts")
+      .select("product_id, forecast_date, predicted_qty, confidence_lower, confidence_upper")
+      .eq("warehouse_id", warehouse_id);
 
-  if (product_id) {
-    query = query.eq("product_id", product_id);
+    if (product_id) {
+      query = query.eq("product_id", product_id);
+    }
+
+    if (days_ahead) {
+      query = query.eq("days_ahead", parseInt(days_ahead));
+    }
+
+    query = query.order("forecast_date");
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const mappedData: ForecastResponse[] = (data || []).map((row) => ({
+      product_id: row.product_id,
+      date: row.forecast_date,
+      predicted_qty: row.predicted_qty ?? 0,
+      confidence_lower: row.confidence_lower ?? 0,
+      confidence_upper: row.confidence_upper ?? 0,
+      trend: row.trend || "stable",
+    }));
+
+    return NextResponse.json(mappedData);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  if (days_ahead) {
-    query = query.eq("days_ahead", parseInt(days_ahead));
-  }
-
-  query = query.order("forecast_date");
-
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data || []);
 }

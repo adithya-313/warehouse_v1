@@ -1,6 +1,9 @@
 -- ============================================================
 -- 016_partitioning.sql — Database Partitioning for stock_movements
--- Run this in: Supabase Dashboard → SQL Editor
+-- RUN THIS IN: Supabase Dashboard → SQL Editor
+-- ============================================================
+-- IDEMPOTENT - Safe to run multiple times
+-- WARNING: This drops and recreates stock_movements table
 -- ============================================================
 
 -- ============================================================
@@ -21,9 +24,9 @@ CREATE TABLE stock_movements (
     created_at     TIMESTAMPTZ DEFAULT NOW()
 ) PARTITION BY RANGE (created_at);
 
-CREATE INDEX idx_stock_movements_product_created ON stock_movements (product_id, created_at DESC);
-CREATE INDEX idx_stock_movements_metadata ON stock_movements USING GIN (metadata);
-CREATE INDEX idx_stock_movements_date ON stock_movements (date);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_product_created ON stock_movements (product_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_metadata ON stock_movements USING GIN (metadata);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_date ON stock_movements (date);
 
 -- ============================================================
 -- Step 2: Create partitions for current and next 3 months
@@ -101,25 +104,26 @@ VALUES (
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
--- Step 6: Copy existing data to current partition
--- ============================================================
-
--- This will be handled by the partition attachment
--- run during migration if data exists in old table
-
--- ============================================================
--- Step 7: Create view for backward compatibility
+-- Step 6: Create view for backward compatibility
 -- ============================================================
 
 CREATE OR REPLACE VIEW stock_movements_all AS
 SELECT * FROM stock_movements;
 
 -- ============================================================
--- Step 8: RLS policies for partitioned table
+-- Step 7: RLS policies for partitioned table
+-- IMPORTANT: Drop first for idempotency
 -- ============================================================
 
 ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "service_all" ON stock_movements;
+DROP POLICY IF EXISTS "authenticated_read" ON stock_movements;
+DROP POLICY IF EXISTS "warehouse_worker_read" ON stock_movements;
+DROP POLICY IF EXISTS "warehouse_worker_insert" ON stock_movements;
+
+-- Create policies
 CREATE POLICY "service_all" ON stock_movements
     FOR ALL TO service_role USING (true);
 
@@ -133,10 +137,14 @@ CREATE POLICY "warehouse_worker_insert" ON stock_movements
     FOR INSERT TO warehouse_worker WITH CHECK (true);
 
 -- ============================================================
--- COMMENTS
+-- Step 8: Comments
 -- ============================================================
 
 COMMENT ON TABLE stock_movements IS 'Partitioned by created_at month for performance';
 COMMENT ON FUNCTION create_month_partition(TEXT, TEXT) IS 'Creates monthly partition';
 COMMENT ON FUNCTION ensure_next_month_partition() IS 'Creates next month partition automatically';
 COMMENT ON VIEW stock_movements_all IS 'Unified view over all partitions';
+
+-- ============================================================
+-- COMPLETE!
+-- ============================================================

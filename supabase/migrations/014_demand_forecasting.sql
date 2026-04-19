@@ -1,8 +1,14 @@
 -- ============================================================
--- Demand Forecasts and Model Metrics Tables
+-- 014_demand_forecasting.sql — Demand Forecasts and Model Metrics
+-- RUN THIS IN: Supabase Dashboard → SQL Editor
+-- ============================================================
+-- IDEMPOTENT - Safe to run multiple times
 -- ============================================================
 
--- Table: demand_forecasts (30-day forward predictions with confidence intervals)
+-- ============================================================
+-- STEP 1: demand_forecasts Table
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS demand_forecasts (
   id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   product_id          UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -22,7 +28,10 @@ CREATE TABLE IF NOT EXISTS demand_forecasts (
   UNIQUE(product_id, warehouse_id, forecast_date)
 );
 
--- Table: model_metrics (MAPE tracking for forecast accuracy)
+-- ============================================================
+-- STEP 2: model_metrics Table
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS model_metrics (
   id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   product_id          UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -39,14 +48,48 @@ CREATE TABLE IF NOT EXISTS model_metrics (
   UNIQUE(product_id, warehouse_id, model_version)
 );
 
-ALTER TABLE demand_forecasts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE model_metrics ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "service_all" ON demand_forecasts FOR ALL USING (true);
-CREATE POLICY "service_all" ON model_metrics FOR ALL USING (true);
+-- ============================================================
+-- STEP 3: INDEXES
+-- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_forecasts_product    ON demand_forecasts(product_id);
 CREATE INDEX IF NOT EXISTS idx_forecasts_warehouse  ON demand_forecasts(warehouse_id);
 CREATE INDEX IF NOT EXISTS idx_forecasts_date        ON demand_forecasts(forecast_date);
 CREATE INDEX IF NOT EXISTS idx_metrics_product       ON model_metrics(product_id);
 CREATE INDEX IF NOT EXISTS idx_metrics_mape          ON model_metrics(mape DESC);
+
+-- ============================================================
+-- STEP 4: ROW LEVEL SECURITY POLICIES
+-- IMPORTANT: Use DROP POLICY IF EXISTS for idempotency
+-- ============================================================
+
+ALTER TABLE demand_forecasts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE model_metrics ENABLE ROW LEVEL SECURITY;
+
+-- demand_forecasts policies
+DROP POLICY IF EXISTS "service_all" ON demand_forecasts;
+DROP POLICY IF EXISTS "authenticated_read_all" ON demand_forecasts;
+
+CREATE POLICY "service_all" ON demand_forecasts
+  FOR ALL TO service_role
+  USING (true);
+
+CREATE POLICY "authenticated_read_all" ON demand_forecasts
+  FOR SELECT TO authenticated
+  USING (true);
+
+-- model_metrics policies
+DROP POLICY IF EXISTS "service_all" ON model_metrics;
+DROP POLICY IF EXISTS "authenticated_read_all" ON model_metrics;
+
+CREATE POLICY "service_all" ON model_metrics
+  FOR ALL TO service_role
+  USING (true);
+
+CREATE POLICY "authenticated_read_all" ON model_metrics
+  FOR SELECT TO authenticated
+  USING (true);
+
+-- ============================================================
+-- COMPLETE!
+-- ============================================================

@@ -1,0 +1,141 @@
+name: ML Model Training
+
+on:
+  schedule:
+    - cron: '0 20 * * 0'  # Sunday at 02:00 IST (20:00 UTC)
+  workflow_dispatch:
+    inputs:
+      model_type:
+        description: 'Model to train'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - xgboost
+          - tft
+      days_back:
+        description: 'Days of historical data'
+        required: false
+        default: '90'
+
+env:
+  PYTHON_VERSION: '3.11'
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('ml/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        working-directory: ./ml
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run XGBoost Training
+        if: inputs.model_type == 'all' || inputs.model_type == 'xgboost'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: ./ml
+        run: |
+          echo "Starting XGBoost training..."
+          export SUPABASE_URL
+          export SUPABASE_SERVICE_ROLE_KEY
+          python train.py 2>&1 | tee xgb_train.log
+          
+          if [ ${PIPESTATUS[0]} -eq 0 ]; then
+            echo "XGBoost training completed successfully"
+          else
+            echo "XGBoost training failed"
+            exit 1
+          fi
+
+      - name: Run TFT Training
+        if: (inputs.model_type == 'all' || inputs.model_type == 'tft') && false
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: ./ml
+        run: |
+          echo "Starting TFT training (disabled - requires GPU)..."
+          echo "Skipping TFT training in CI"
+
+      - name: Upload training logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-logs
+          path: ml/*.log
+          retention-days: 7
+
+      - name: Upload model artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artifacts
+          path: ml/models/
+          retention-days: 30
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          channel-id: 'ml-alerts'
+          payload: |
+            {
+              "text": "ML Training Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*ML Training Failed* :x:\nRun: ${{ github.run_id }}\nWorkflow: ${{ github.workflow }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      - name: Success notification
+        if: success()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          channel-id: 'ml-alerts'
+          payload: |
+            {
+              "text": "ML Training Succeeded",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*ML Training Succeeded* :white_check_mark:\nVersion: ${{ env.MODEL_VERSION }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
